@@ -39,7 +39,6 @@ export default function MeasurementGrid({ images }) {
           {categories.map((cat, i) => {
             const isLarge = i === 0 || i === 5;
             return (
-              <Link to={`/measurement/${cat.key}`}>
               <motion.div
                 key={cat.key}
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -47,9 +46,10 @@ export default function MeasurementGrid({ images }) {
                 viewport={{ once: true, margin: "-40px" }}
                 transition={{ duration: 0.4, delay: i * 0.06 }}
                 className={`relative group rounded-2xl overflow-hidden cursor-pointer ${
-                  isLarge ? "col-span-2 row-span-1" : ""
+                  isLarge ? "col-span-2" : ""
                 }`}
               >
+                <Link to={`/measurement/${cat.key}`} className="absolute inset-0 z-10" />
                 {images?.[cat.key] ? (
                   <img
                     src={images[cat.key]}
@@ -57,23 +57,20 @@ export default function MeasurementGrid({ images }) {
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                {/* Hover overlay */}
                 <div className="absolute inset-0 bg-[#FF6B4A]/0 group-hover:bg-[#FF6B4A]/20 transition-colors duration-300" />
                 <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5">
                   <h3 className="text-white font-bold text-base lg:text-lg">{cat.label}</h3>
                   <p className="text-white/70 text-xs lg:text-sm mt-0.5">{cat.sublabel}</p>
                 </div>
-                {/* Corner accent */}
                 <div className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-white/10 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M7 17L17 7M17 7H7M17 7V17" />
                   </svg>
                 </div>
               </motion.div>
-              </Link>
             );
           })}
         </div>
