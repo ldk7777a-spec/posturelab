@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 const categories = [
   { key: "spine", label: "Spine", sublabel: "Alignment & Curvature" },
@@ -38,6 +39,7 @@ export default function MeasurementGrid({ images }) {
           {categories.map((cat, i) => {
             const isLarge = i === 0 || i === 5;
             return (
+              <Link to={`/measurement/${cat.key}`}>
               <motion.div
                 key={cat.key}
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -67,6 +69,7 @@ export default function MeasurementGrid({ images }) {
                   </svg>
                 </div>
               </motion.div>
+              </Link>
             );
           })}
         </div>

@@ -60,7 +60,7 @@ function AnalysisVideo({ heroImage }) {
           transition={{ duration: 1.2, repeat: Infinity }}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-          분석 중
+          Analyzing...
         </motion.span>
       </div>
 
