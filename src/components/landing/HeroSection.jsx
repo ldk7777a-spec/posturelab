@@ -84,7 +84,7 @@ export default function HeroSection({ heroImage }) {
                 <div className="bg-white rounded-[2rem] overflow-hidden">
                   {/* Phone status bar */}
                   <div className="flex items-center justify-between px-5 pt-4 pb-2">
-                    <Logo className="h-5" />
+                    <Logo className="h-7" />
                     <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
                       <Users className="w-3.5 h-3.5 text-gray-400" />
                     </div>
