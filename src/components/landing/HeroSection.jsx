@@ -1,8 +1,90 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { CreditCard, ShieldCheck, Users, ArrowRight, Play, CheckCircle2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { CreditCard, ShieldCheck, Users, ArrowRight, Play, CheckCircle2, ScanLine } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import Logo from "@/components/landing/Logo";
+
+const ANALYSIS_STEPS = ["Detecting joints...", "Tracking motion...", "Calculating angles...", "Generating insights..."];
+
+function AnalysisVideo({ heroImage }) {
+  const [step, setStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [scanY, setScanY] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsPlaying(true);
+      setStep((s) => (s + 1) % ANALYSIS_STEPS.length);
+      setScanY((y) => (y + 30) % 100);
+    }, 1800);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="mt-3 rounded-xl overflow-hidden relative cursor-pointer" onClick={() => setIsPlaying(!isPlaying)}>
+      <div
+        className="w-full h-40 bg-gray-800"
+        style={{ backgroundImage: `url(${heroImage})`, backgroundSize: "cover", backgroundPosition: "center" }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+
+      {/* Scan line animation */}
+      <motion.div
+        className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#FF6B4A] to-transparent opacity-80"
+        animate={{ top: [`${scanY}%`, `${(scanY + 40) % 100}%`] }}
+        transition={{ duration: 1.8, ease: "linear", repeat: Infinity }}
+      />
+
+      {/* Corner tracking dots */}
+      {[
+        { top: "25%", left: "30%" },
+        { top: "55%", left: "48%" },
+        { top: "40%", left: "65%" },
+        { top: "70%", left: "38%" },
+      ].map((pos, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-2 h-2 rounded-full border-2 border-[#FF6B4A]"
+          style={{ top: pos.top, left: pos.left }}
+          animate={{ scale: [1, 1.6, 1], opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 1.2, delay: i * 0.3, repeat: Infinity }}
+        />
+      ))}
+
+      {/* Top badges */}
+      <div className="absolute top-2 left-2 flex gap-1">
+        <span className="bg-white/90 text-[10px] font-semibold text-[#1A1A2E] px-2 py-0.5 rounded-full">Capture</span>
+        <motion.span
+          className="bg-[#FF6B4A] text-[10px] font-semibold text-white px-2 py-0.5 rounded-full flex items-center gap-1"
+          animate={{ opacity: [1, 0.6, 1] }}
+          transition={{ duration: 1.2, repeat: Infinity }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
+          분석 중
+        </motion.span>
+      </div>
+
+      {/* Analysis step text */}
+      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={step}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.3 }}
+            className="text-[10px] text-white/90 font-medium bg-black/40 backdrop-blur-sm px-2 py-1 rounded-lg"
+          >
+            {ANALYSIS_STEPS[step]}
+          </motion.span>
+        </AnimatePresence>
+        <div className="bg-white/90 rounded-full p-1.5">
+          <Play className="w-4 h-4 text-[#1A1A2E] fill-current" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const trustBadges = [
   { icon: CreditCard, text: "No credit card required" },
@@ -96,22 +178,7 @@ export default function HeroSection({ heroImage }) {
                     <p className="text-xs text-gray-400 mt-0.5">Today, 9:41 AM • Athlete: Jordan T.</p>
 
                     {/* Video comparison area */}
-                    <div className="mt-3 rounded-xl overflow-hidden relative">
-                      <div
-                        className="w-full h-40 bg-gray-800"
-                        style={{ backgroundImage: `url(${heroImage})`, backgroundSize: "cover", backgroundPosition: "center" }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                      <div className="absolute top-2 left-2 flex gap-1">
-                        <span className="bg-white/90 text-[10px] font-semibold text-[#1A1A2E] px-2 py-0.5 rounded-full">Capture</span>
-                        <span className="bg-[#FF6B4A] text-[10px] font-semibold text-white px-2 py-0.5 rounded-full">Analysis</span>
-                      </div>
-                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
-                        <div className="bg-white/90 rounded-full p-1.5">
-                          <Play className="w-4 h-4 text-[#1A1A2E] fill-current" />
-                        </div>
-                      </div>
-                    </div>
+                    <AnalysisVideo heroImage={heroImage} />
 
                     {/* Score */}
                     <div className="mt-4">
