@@ -26,7 +26,7 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 lg:gap-12">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1">
-            <Logo className="h-10 mb-4" dark={true} />
+            <Logo className="h-14 mb-4" dark={true} />
             <p className="text-sm text-gray-500 leading-relaxed">
               AI-powered motion analysis for coaches and athletes.
             </p>
