@@ -8,6 +8,8 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import MeasurementDetail from './pages/MeasurementDetail';
+import AnalysisReport from './pages/AnalysisReport';
+import Booking from './pages/Booking';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -38,6 +40,8 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/measurement/:key" element={<MeasurementDetail />} />
+      <Route path="/report" element={<AnalysisReport />} />
+      <Route path="/booking" element={<Booking />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

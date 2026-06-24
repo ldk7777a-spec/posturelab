@@ -50,11 +50,15 @@ export default function MeasurementGrid({ images }) {
                   isLarge ? "col-span-2 row-span-1" : ""
                 }`}
               >
-                <img
-                  src={images[cat.key]}
-                  alt={cat.label}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                {images?.[cat.key] ? (
+                  <img
+                    src={images[cat.key]}
+                    alt={cat.label}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                 {/* Hover overlay */}
                 <div className="absolute inset-0 bg-[#FF6B4A]/0 group-hover:bg-[#FF6B4A]/20 transition-colors duration-300" />

@@ -4,6 +4,7 @@ import HeroSection from "@/components/landing/HeroSection";
 import FeatureCards from "@/components/landing/FeatureCards";
 import MeasurementGrid from "@/components/landing/MeasurementGrid";
 import PricingSection from "@/components/landing/PricingSection";
+import PostureCompare from "@/components/landing/PostureCompare";
 import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
 
@@ -24,6 +25,7 @@ export default function Home() {
     <div className="min-h-screen bg-white">
       <Header />
       <HeroSection heroImage={HERO_IMAGE} />
+      <PostureCompare />
       <FeatureCards />
       <MeasurementGrid images={MEASUREMENT_IMAGES} />
       <PricingSection />
