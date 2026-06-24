@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const LOGO_URL = "https://media.base44.com/images/public/user_69ce7afadfbe8f1fbf0ef729/d5b44e7fb_253f5a4f-2501-483a-abb2-8970a2a4bfe2.png";
+import Logo from "@/components/landing/Logo";
 
 const navItems = ["Product", "Features", "Use Cases", "Resources", "Pricing"];
 
@@ -26,7 +25,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16 lg:h-[72px]">
           {/* Logo */}
           <a href="#" className="flex-shrink-0">
-            <img src={LOGO_URL} alt="PostureLab" className="h-8 lg:h-9" />
+            <Logo className="h-8 lg:h-9" />
           </a>
 
           {/* Desktop Nav */}

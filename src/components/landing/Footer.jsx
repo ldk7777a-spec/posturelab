@@ -1,6 +1,5 @@
 import React from "react";
-
-const LOGO_URL = "https://media.base44.com/images/public/user_69ce7afadfbe8f1fbf0ef729/d5b44e7fb_253f5a4f-2501-483a-abb2-8970a2a4bfe2.png";
+import Logo from "@/components/landing/Logo";
 
 const footerLinks = {
   Product: ["Features", "Pricing", "Integrations", "Changelog", "Roadmap"],
@@ -27,7 +26,7 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 lg:gap-12">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1">
-            <img src={LOGO_URL} alt="PostureLab" className="h-8 brightness-0 invert mb-4" />
+            <Logo className="h-8 mb-4" dark={true} />
             <p className="text-sm text-gray-500 leading-relaxed">
               AI-powered motion analysis for coaches and athletes.
             </p>

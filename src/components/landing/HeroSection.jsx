@@ -2,8 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { CreditCard, ShieldCheck, Users, ArrowRight, Play, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
-
-const LOGO_URL = "https://media.base44.com/images/public/user_69ce7afadfbe8f1fbf0ef729/d5b44e7fb_253f5a4f-2501-483a-abb2-8970a2a4bfe2.png";
+import Logo from "@/components/landing/Logo";
 
 const trustBadges = [
   { icon: CreditCard, text: "No credit card required" },
@@ -85,7 +84,7 @@ export default function HeroSection({ heroImage }) {
                 <div className="bg-white rounded-[2rem] overflow-hidden">
                   {/* Phone status bar */}
                   <div className="flex items-center justify-between px-5 pt-4 pb-2">
-                    <img src={LOGO_URL} alt="PostureLab" className="h-5" />
+                    <Logo className="h-5" />
                     <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
                       <Users className="w-3.5 h-3.5 text-gray-400" />
                     </div>
@@ -98,7 +97,10 @@ export default function HeroSection({ heroImage }) {
 
                     {/* Video comparison area */}
                     <div className="mt-3 rounded-xl overflow-hidden relative">
-                      <img src={heroImage} alt="Athlete performing back squat analysis" className="w-full h-40 object-cover" />
+                      <div
+                        className="w-full h-40 bg-gray-800"
+                        style={{ backgroundImage: `url(${heroImage})`, backgroundSize: "cover", backgroundPosition: "center" }}
+                      />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                       <div className="absolute top-2 left-2 flex gap-1">
                         <span className="bg-white/90 text-[10px] font-semibold text-[#1A1A2E] px-2 py-0.5 rounded-full">Capture</span>
