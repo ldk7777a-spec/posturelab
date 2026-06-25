@@ -1,7 +1,8 @@
-import React from "react";
-import { useParams, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Ruler, Zap, BarChart2 } from "lucide-react";
 import { motion } from "framer-motion";
+import ImageUploader from "@/components/analysis/ImageUploader";
 
 const MEASUREMENT_IMAGES = {
   spine: "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/ac0856d24_generated_869a708b.png",
@@ -116,7 +117,12 @@ const DATA = {
 
 export default function MeasurementDetail() {
   const { key } = useParams();
+  const navigate = useNavigate();
   const data = DATA[key];
+
+  const handleAnalysisComplete = (result, imageUrl) => {
+    navigate("/report", { state: { result, imageUrl } });
+  };
 
   if (!data) {
     return (
@@ -239,22 +245,13 @@ export default function MeasurementDetail() {
           </div>
         </motion.div>
 
-        {/* CTA */}
+        {/* AI Analysis Uploader */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5 }}
-          className="rounded-2xl p-8 text-center"
-          style={{ background: `${data.color}10`, border: `1px solid ${data.color}25` }}
         >
-          <h3 className="text-xl font-bold text-[#1A1A2E] mb-2">Ready to analyze your {data.label.toLowerCase()}?</h3>
-          <p className="text-gray-500 text-sm mb-5">Start a free trial and run your first analysis in under 2 minutes.</p>
-          <button
-            className="inline-flex items-center gap-2 text-white font-semibold px-7 py-3 rounded-xl text-sm shadow-lg transition-all hover:opacity-90"
-            style={{ background: data.color }}
-          >
-            Start Free Trial
-          </button>
+          <ImageUploader onAnalysisComplete={handleAnalysisComplete} accentColor={data.color} />
         </motion.div>
       </div>
     </div>
