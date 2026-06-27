@@ -2,12 +2,14 @@ import React, { useState, useEffect } from "react";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/landing/Logo";
+import { useLang } from "@/lib/LanguageContext";
 
 const navItems = ["Product", "Features", "Use Cases", "Resources", "Pricing"];
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { lang, toggleLang } = useLang();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -44,11 +46,17 @@ export default function Header() {
 
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center gap-3">
+            <button
+              onClick={toggleLang}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:border-[#FF6B4A] hover:text-[#FF6B4A] transition-all"
+            >
+              {lang === "ko" ? "🇰🇷 KO" : "🇺🇸 EN"}
+            </button>
             <a href="#" className="text-sm font-medium text-gray-600 hover:text-[#1A1A2E] transition-colors px-3 py-2">
-              Sign in
+              {lang === "ko" ? "로그인" : "Sign in"}
             </a>
             <Button className="bg-[#FF6B4A] hover:bg-[#e55a3a] text-white font-semibold px-5 h-10 rounded-lg shadow-sm shadow-orange-200/50">
-              Start Free Trial
+              {lang === "ko" ? "무료 체험" : "Start Free Trial"}
             </Button>
           </div>
 
@@ -77,9 +85,16 @@ export default function Header() {
             </a>
           ))}
           <div className="pt-3 border-t border-gray-100 space-y-2">
-            <a href="#" className="block px-3 py-2 text-base font-medium text-gray-600">Sign in</a>
+            <button
+              onClick={toggleLang}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600"
+            >
+              {lang === "ko" ? "🇰🇷 한국어" : "🇺🇸 English"}
+              <span className="text-xs text-gray-400">→ {lang === "ko" ? "English" : "한국어"}</span>
+            </button>
+            <a href="#" className="block px-3 py-2 text-base font-medium text-gray-600">{lang === "ko" ? "로그인" : "Sign in"}</a>
             <Button className="w-full bg-[#FF6B4A] hover:bg-[#e55a3a] text-white font-semibold h-11 rounded-lg">
-              Start Free Trial
+              {lang === "ko" ? "무료 체험" : "Start Free Trial"}
             </Button>
           </div>
         </div>

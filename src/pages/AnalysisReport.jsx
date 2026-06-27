@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useLang, T } from "@/lib/LanguageContext";
 import { ArrowLeft, TrendingUp, AlertTriangle, CheckCircle2, BarChart2, ChevronDown, ChevronUp, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -39,7 +40,7 @@ const CAT_LABELS = {
   spine: "척추", shoulders: "어깨", pelvis: "골반", knees: "무릎", feet: "발·족부",
 };
 
-function CategoryCard({ catKey, data }) {
+function CategoryCard({ catKey, data, lang }) {
   const [open, setOpen] = useState(false);
   const color = CAT_COLORS[catKey] || "#FF6B4A";
   const label = CAT_LABELS[catKey] || catKey;
@@ -58,7 +59,7 @@ function CategoryCard({ catKey, data }) {
         <div className="flex-1 text-left">
           <p className="text-sm font-bold text-[#1A1A2E]">{label}</p>
           {hasEquipmentFlag && (
-            <p className="text-xs text-amber-500 mt-0.5">⚠ 장비/영상 필요 항목 포함</p>
+            <p className="text-xs text-amber-500 mt-0.5">⚠ {T.equipmentFlag[lang]}</p>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -101,6 +102,7 @@ function CategoryCard({ catKey, data }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function AnalysisReport() {
   const location = useLocation();
+  const { lang } = useLang();
   const aiResult = location.state?.result;
   const imageUrl = location.state?.imageUrl;
 
@@ -125,7 +127,7 @@ export default function AnalysisReport() {
 
   const severityColor = { high: "#EF4444", medium: "#F59E0B", low: "#10B981" };
   const severityBg = { high: "bg-red-50", medium: "bg-amber-50", low: "bg-emerald-50" };
-  const severityLabel = { high: "높음", medium: "보통", low: "낮음" };
+  const severityLabel = { high: T.severityHigh[lang], medium: T.severityMid[lang], low: T.severityLow[lang] };
 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
@@ -134,10 +136,10 @@ export default function AnalysisReport() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-[#1A1A2E] text-sm font-medium transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            홈으로
+            {T.backHome[lang]}
           </Link>
-          <span className="text-sm font-bold text-[#1A1A2E]">자세 분석 리포트</span>
-          <span className="text-xs text-gray-400">{isAI ? "AI 분석" : "샘플 데이터"}</span>
+          <span className="text-sm font-bold text-[#1A1A2E]">{T.reportTitle[lang]}</span>
+          <span className="text-xs text-gray-400">{isAI ? T.aiLabel[lang] : T.sampleLabel[lang]}</span>
         </div>
       </div>
 
@@ -150,9 +152,9 @@ export default function AnalysisReport() {
         >
           <ScoreGauge score={overallScore} />
           <div className="text-center sm:text-left">
-            <p className="text-white/50 text-sm mb-1">종합 자세 점수</p>
+            <p className="text-white/50 text-sm mb-1">{T.overallScore[lang]}</p>
             <h1 className="text-2xl font-extrabold text-white mb-2">
-              {overallScore >= 80 ? "우수 — 잘 유지하세요!" : overallScore >= 60 ? "양호 — 개선 여지 있음" : "주의 필요 — 교정 권장"}
+              {overallScore >= 80 ? T.scoreExcellent[lang] : overallScore >= 60 ? T.scoreGood[lang] : T.scoreWarn[lang]}
             </h1>
             <p className="text-white/60 text-sm leading-relaxed max-w-md">{summary}</p>
           </div>
@@ -165,7 +167,7 @@ export default function AnalysisReport() {
               className="bg-white rounded-2xl p-4 shadow-sm flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <Camera className="w-4 h-4 text-[#FF6B4A]" />
-                <h2 className="text-sm font-bold text-[#1A1A2E]">분석된 이미지</h2>
+                <h2 className="text-sm font-bold text-[#1A1A2E]">{T.analyzedImage[lang]}</h2>
               </div>
               <img src={imageUrl} alt="분석 이미지" className="w-full rounded-xl object-contain max-h-64 bg-gray-50" />
             </motion.div>
@@ -174,7 +176,7 @@ export default function AnalysisReport() {
             className={`bg-white rounded-2xl p-6 shadow-sm ${!imageUrl ? "sm:col-span-2" : ""}`}>
             <div className="flex items-center gap-2 mb-2">
               <BarChart2 className="w-4 h-4 text-[#FF6B4A]" />
-              <h2 className="text-sm font-bold text-[#1A1A2E]">카테고리별 균형</h2>
+              <h2 className="text-sm font-bold text-[#1A1A2E]">{T.categoryBalance[lang]}</h2>
             </div>
             <ResponsiveContainer width="100%" height={220}>
               <RadarChart data={radarData}>
@@ -189,10 +191,10 @@ export default function AnalysisReport() {
         {/* Category accordion */}
         {isAI && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-            <h2 className="text-base font-bold text-[#1A1A2E] mb-3">카테고리별 분석</h2>
+            <h2 className="text-base font-bold text-[#1A1A2E] mb-3">{T.categoryAnalysis[lang]}</h2>
             <div className="space-y-2">
               {Object.entries(aiResult.categories || {}).map(([k, v]) => (
-                <CategoryCard key={k} catKey={k} data={v} />
+                <CategoryCard key={k} catKey={k} data={v} lang={lang} />
               ))}
             </div>
           </motion.div>
@@ -201,7 +203,7 @@ export default function AnalysisReport() {
         {/* Top priorities */}
         {priorities.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <h2 className="text-base font-bold text-[#1A1A2E] mb-3">우선 교정 항목</h2>
+            <h2 className="text-base font-bold text-[#1A1A2E] mb-3">{T.priorities[lang]}</h2>
             <div className="space-y-3">
               {priorities.map((p, i) => (
                 <div key={i} className={`${severityBg[p.severity] || "bg-gray-50"} rounded-xl p-5 flex items-start gap-4`}>
@@ -226,7 +228,7 @@ export default function AnalysisReport() {
         {/* Coaching guide */}
         {coachingGuide.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-            <h2 className="text-base font-bold text-[#1A1A2E] mb-3">AI 코칭 가이드</h2>
+            <h2 className="text-base font-bold text-[#1A1A2E] mb-3">{T.coachingGuide[lang]}</h2>
             <div className="grid sm:grid-cols-2 gap-3">
               {coachingGuide.map((g, i) => (
                 <div key={i} className="bg-white rounded-xl border border-gray-100 p-5">
@@ -245,11 +247,11 @@ export default function AnalysisReport() {
         {/* CTA */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
           className="bg-[#1A1A2E] rounded-2xl p-8 text-center">
-          <h3 className="text-xl font-bold text-white mb-2">전문가와 함께 교정하세요</h3>
-          <p className="text-white/50 text-sm mb-6">인증된 PostureLab 트레이너와 1:1 상담을 예약하세요.</p>
+          <h3 className="text-xl font-bold text-white mb-2">{T.bookCTA[lang]}</h3>
+          <p className="text-white/50 text-sm mb-6">{T.bookDesc[lang]}</p>
           <Link to="/booking"
             className="inline-flex items-center gap-2 bg-[#FF6B4A] hover:bg-[#e55a3a] text-white font-semibold px-7 py-3 rounded-xl text-sm transition-all shadow-lg shadow-orange-900/30">
-            상담 예약하기
+            {T.bookBtn[lang]}
           </Link>
         </motion.div>
       </div>
