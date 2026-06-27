@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CreditCard, ShieldCheck, Users, ArrowRight, Play, CheckCircle2, ScanLine } from "lucide-react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "@/components/landing/Logo";
 
@@ -134,9 +135,11 @@ export default function HeroSection({ heroImage }) {
             </p>
 
             <div className="flex flex-wrap gap-3 mb-10">
-              <Button className="bg-[#FF6B4A] hover:bg-[#e55a3a] text-white font-semibold px-7 h-12 rounded-xl text-base shadow-lg shadow-orange-200/40 hover:shadow-orange-300/50 transition-all">
-                Start Free Trial
-              </Button>
+              <Link to="/analyze">
+                <Button className="bg-[#FF6B4A] hover:bg-[#e55a3a] text-white font-semibold px-7 h-12 rounded-xl text-base shadow-lg shadow-orange-200/40 hover:shadow-orange-300/50 transition-all">
+                  지금 분석하기
+                </Button>
+              </Link>
               <Button variant="ghost" className="text-[#1A1A2E] font-semibold px-6 h-12 rounded-xl text-base hover:bg-gray-50 group">
                 Book a Demo
                 <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
