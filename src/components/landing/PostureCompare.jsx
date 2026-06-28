@@ -2,8 +2,8 @@ import React, { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useLang } from "@/lib/LanguageContext";
 
-const BEFORE_IMAGE = "https://images.unsplash.com/photo-1520975696133-31b7e23aa0f3?w=800&q=80";
-const AFTER_IMAGE = "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&q=80";
+const BEFORE_IMAGE = "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/4e36975e3_Posture_analysis_BEFORE_image_-_A_Caucasian_woman_-1782659303218.png";
+const AFTER_IMAGE = "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/7f309043d_Posture_analysis_AFTER_image_-_Transform_this_imag-1782659305647.png";
 
 export default function PostureCompare() {
   const { lang } = useLang();
