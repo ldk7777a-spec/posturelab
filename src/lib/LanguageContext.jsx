@@ -92,4 +92,10 @@ export const T = {
   badge1:       { ko: "신용카드 불필요", en: "No credit card required" },
   badge2:       { ko: "안전 & 프라이빗", en: "Secure & private" },
   badge3:       { ko: "2,000+ 코치 사용 중", en: "Used by 2,000+ coaches" },
+  // MeasurementDetail page
+  measuredParams: { ko: "측정 파라미터",          en: "Measured Parameters" },
+  howMeasured:    { ko: "측정 방법",              en: "How It's Measured" },
+  clinicBenefits: { ko: "임상 및 성능 이점",       en: "Clinical & Performance Benefits" },
+  backBtn:        { ko: "뒤로",                   en: "Back" },
+  notFound:       { ko: "측정 항목을 찾을 수 없습니다.", en: "Measurement not found." },
 };
