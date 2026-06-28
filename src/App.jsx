@@ -12,6 +12,8 @@ import MeasurementDetail from './pages/MeasurementDetail';
 import AnalysisReport from './pages/AnalysisReport';
 import Booking from './pages/Booking';
 import Analyze from './pages/Analyze';
+import MyPage from './pages/MyPage';
+import Admin from './pages/Admin';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -45,6 +47,8 @@ const AuthenticatedApp = () => {
       <Route path="/report" element={<AnalysisReport />} />
       <Route path="/booking" element={<Booking />} />
       <Route path="/analyze" element={<Analyze />} />
+      <Route path="/mypage" element={<MyPage />} />
+      <Route path="/admin" element={<Admin />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

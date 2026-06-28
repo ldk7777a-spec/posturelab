@@ -67,8 +67,24 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { imageUrl, view } = await req.json();
+    const { imageUrl, view, category } = await req.json();
     if (!imageUrl) return Response.json({ error: 'imageUrl is required' }, { status: 400 });
+
+    const CATEGORY_CONTEXT = {
+      soccer: "This person is a soccer player. Pay special attention to kicking posture, running form, lower limb alignment, hip flexibility, and ankle stability.",
+      baseball: "This person is a baseball player. Focus on batting/pitching posture, shoulder-hip rotation, spinal rotation, and arm mechanics.",
+      running: "This person is a runner. Analyze running posture, foot strike pattern, knee lift, cadence, and forward lean.",
+      walking: "This person is walking. Analyze gait posture, foot pronation, pelvic tilt, and upper body sway.",
+      pilates: "This person practices Pilates. Focus on core alignment, neutral spine, breathing patterns, and precise joint positioning.",
+      yoga: "This person practices yoga. Focus on joint flexibility, spinal elongation, weight distribution, and balance.",
+      golf: "This person is a golfer. Analyze swing posture, spinal rotation, weight shift, shoulder plane, and knee flexion.",
+      swimming: "This person is a swimmer. Focus on shoulder mobility, core stability, spinal alignment, and arm/torso coordination.",
+      cycling: "This person is a cyclist. Analyze saddle posture, knee tracking, hip angle, back angle, and shoulder position.",
+      basketball: "This person plays basketball. Focus on jump landing mechanics, defensive stance, core stability, and knee alignment.",
+      tennis: "This person plays tennis. Analyze serve mechanics, swing posture, shoulder rotation, and knee flexion.",
+      general: "Analyze general static posture.",
+    };
+    const catContext = CATEGORY_CONTEXT[category] || CATEGORY_CONTEXT.general;
 
     const apiKey = Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) return Response.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
@@ -94,7 +110,7 @@ Deno.serve(async (req) => {
           {
             parts: [
               { inline_data: { mime_type: mimeType, data: base64Image } },
-              { text: `This is a ${view || 'posture'} view image. ${ANALYSIS_PROMPT}` },
+              { text: `This is a ${view || 'posture'} view image. Sport/activity category: ${category || 'general'}. ${catContext}\n\n${ANALYSIS_PROMPT}` },
             ],
           },
         ],

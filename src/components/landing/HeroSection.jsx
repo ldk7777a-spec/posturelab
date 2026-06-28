@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { CreditCard, ShieldCheck, Users, ArrowRight, Play, CheckCircle2, ScanLine } from "lucide-react";
+import { CreditCard, ShieldCheck, Users, ArrowRight, Play, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "@/components/landing/Logo";
+import { useLang, T } from "@/lib/LanguageContext";
 
 const ANALYSIS_STEPS = ["Detecting joints...", "Tracking motion...", "Calculating angles...", "Generating insights..."];
 
@@ -87,13 +88,15 @@ function AnalysisVideo({ heroImage }) {
   );
 }
 
-const trustBadges = [
-  { icon: CreditCard, text: "No credit card required" },
-  { icon: ShieldCheck, text: "Secure & private" },
-  { icon: Users, text: "Used by 2,000+ coaches" },
-];
+
 
 export default function HeroSection({ heroImage }) {
+  const { lang } = useLang();
+  const trustBadges = [
+    { icon: CreditCard, text: T.badge1[lang] },
+    { icon: ShieldCheck, text: T.badge2[lang] },
+    { icon: Users, text: T.badge3[lang] },
+  ];
   return (
     <section className="relative pt-24 lg:pt-32 pb-16 lg:pb-24 overflow-hidden">
       {/* Radar backdrop */}
@@ -114,16 +117,15 @@ export default function HeroSection({ heroImage }) {
             <div className="inline-flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-full px-4 py-1.5 mb-6">
               <span className="w-2 h-2 rounded-full bg-[#FF6B4A] animate-pulse" />
               <span className="text-xs font-bold tracking-wider text-[#FF6B4A] uppercase">
-                AI-Powered Motion Analysis
+                {T.heroTagline[lang]}
               </span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[5rem] font-extrabold text-[#1A1A2E] leading-[1.08] tracking-tight mb-6">
-              See every rep.{" "}
+              {T.heroTitle1[lang]}{" "}
               <br className="hidden sm:block" />
-              Improve every{" "}
               <span className="relative">
-                move.
+                {T.heroTitle2[lang]}
                 <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 8" fill="none">
                   <path d="M2 6C50 2 150 2 198 6" stroke="#FF6B4A" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
                 </svg>
@@ -131,17 +133,17 @@ export default function HeroSection({ heroImage }) {
             </h1>
 
             <p className="text-lg text-gray-500 leading-relaxed max-w-lg mb-8">
-              PostureLab helps coaches and athletes capture, analyze, and improve movement with AI-powered insights you can trust.
+              {T.heroDesc[lang]}
             </p>
 
             <div className="flex flex-wrap gap-3 mb-10">
               <Link to="/analyze">
                 <Button className="bg-[#FF6B4A] hover:bg-[#e55a3a] text-white font-semibold px-7 h-12 rounded-xl text-base shadow-lg shadow-orange-200/40 hover:shadow-orange-300/50 transition-all">
-                  지금 분석하기
+                  {T.heroAnalyzeBtn[lang]}
                 </Button>
               </Link>
               <Button variant="ghost" className="text-[#1A1A2E] font-semibold px-6 h-12 rounded-xl text-base hover:bg-gray-50 group">
-                Book a Demo
+                {T.heroDemo[lang]}
                 <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>

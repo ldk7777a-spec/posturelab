@@ -1,10 +1,12 @@
 import React, { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useLang } from "@/lib/LanguageContext";
 
-const BEFORE_IMAGE = "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80";
-const AFTER_IMAGE = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80";
+const BEFORE_IMAGE = "https://images.unsplash.com/photo-1520975696133-31b7e23aa0f3?w=800&q=80";
+const AFTER_IMAGE = "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&q=80";
 
 export default function PostureCompare() {
+  const { lang } = useLang();
   const [sliderX, setSliderX] = useState(50);
   const [dragging, setDragging] = useState(false);
   const containerRef = useRef(null);
@@ -38,10 +40,12 @@ export default function PostureCompare() {
             Before & After
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            See the difference PostureLab makes
+            {lang === "ko" ? "PostureLab이 만드는 차이" : "See the difference PostureLab makes"}
           </h2>
           <p className="mt-3 text-gray-400 max-w-xl mx-auto">
-            Drag the slider to compare posture before and after guided correction.
+            {lang === "ko"
+              ? "슬라이더를 드래그해 교정 전·후 자세를 비교하세요."
+              : "Drag the slider to compare posture before and after guided correction."}
           </p>
         </motion.div>
 
@@ -117,17 +121,17 @@ export default function PostureCompare() {
 
             {/* Labels */}
             <div className="absolute bottom-4 left-0 right-0 flex justify-between px-5 z-20 pointer-events-none">
-              <p className="text-white/80 text-xs font-medium">Rounded shoulders · Forward head</p>
-              <p className="text-white/80 text-xs font-medium">Neutral spine · Balanced hips</p>
+              <p className="text-white/80 text-xs font-medium">굽은 어깨 · 전방 머리 자세</p>
+              <p className="text-white/80 text-xs font-medium">중립 척추 · 균형 잡힌 골반</p>
             </div>
           </div>
 
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-4 mt-6">
             {[
-              { label: "Spine Improvement", value: "+34%", color: "text-emerald-400" },
-              { label: "Shoulder Balance", value: "+28%", color: "text-emerald-400" },
-              { label: "Sessions to Achieve", value: "6 weeks", color: "text-[#FF6B4A]" },
+              { label: lang === "ko" ? "척추 개선" : "Spine Improvement", value: "+34%", color: "text-emerald-400" },
+              { label: lang === "ko" ? "어깨 균형" : "Shoulder Balance", value: "+28%", color: "text-emerald-400" },
+              { label: lang === "ko" ? "달성 기간" : "Sessions to Achieve", value: lang === "ko" ? "6주" : "6 weeks", color: "text-[#FF6B4A]" },
             ].map((s) => (
               <div key={s.label} className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
                 <p className={`text-2xl font-extrabold ${s.color}`}>{s.value}</p>

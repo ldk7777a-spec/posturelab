@@ -82,4 +82,14 @@ export const T = {
   severityLow:  { ko: "낮음",  en: "Low" },
   backHome:     { ko: "홈으로", en: "Home" },
   equipmentFlag:{ ko: "장비/영상 필요 항목 포함", en: "Requires equipment/video" },
+  // Landing page
+  heroTagline:  { ko: "AI 기반 동작 분석", en: "AI-Powered Motion Analysis" },
+  heroTitle1:   { ko: "모든 동작을 보고,", en: "See every rep." },
+  heroTitle2:   { ko: "모든 움직임을 개선하세요.", en: "Improve every move." },
+  heroDesc:     { ko: "PostureLab은 코치와 선수가 AI 기반 인사이트로 동작을 캡처·분석·개선하도록 돕습니다.", en: "PostureLab helps coaches and athletes capture, analyze, and improve movement with AI-powered insights you can trust." },
+  heroAnalyzeBtn:{ ko: "지금 분석하기", en: "Analyze Now" },
+  heroDemo:     { ko: "데모 예약", en: "Book a Demo" },
+  badge1:       { ko: "신용카드 불필요", en: "No credit card required" },
+  badge2:       { ko: "안전 & 프라이빗", en: "Secure & private" },
+  badge3:       { ko: "2,000+ 코치 사용 중", en: "Used by 2,000+ coaches" },
 };

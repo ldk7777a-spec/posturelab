@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "view": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "overall_score": {
+      "type": "number"
+    },
+    "result": {
+      "type": "object"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "category"
+  ],
+  "name": "AnalysisRecord"
+}
