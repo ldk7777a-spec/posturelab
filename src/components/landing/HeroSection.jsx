@@ -144,7 +144,6 @@ export default function HeroSection({ heroImage }) {
               </Link>
               <Button variant="ghost" className="text-[#1A1A2E] font-semibold px-6 h-12 rounded-xl text-base hover:bg-gray-50 group">
                 {T.heroDemo[lang]}
-                <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>
 
