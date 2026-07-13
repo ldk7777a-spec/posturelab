@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
 const ANALYSIS_PROMPT = `You are an expert physiotherapist and biomechanics specialist. Analyze this posture image carefully.
 
@@ -70,6 +70,8 @@ Deno.serve(async (req) => {
     const { imageUrl, view, category } = await req.json();
     if (!imageUrl) return Response.json({ error: 'imageUrl is required' }, { status: 400 });
 
+    const MAX_MEDIA_BYTES = 15 * 1024 * 1024; // Gemini inline request limit is ~20MB total; leave headroom for base64 overhead + prompt
+
     const CATEGORY_CONTEXT = {
       soccer: "This person is a soccer player. Pay special attention to kicking posture, running form, lower limb alignment, hip flexibility, and ankle stability.",
       baseball: "This person is a baseball player. Focus on batting/pitching posture, shoulder-hip rotation, spinal rotation, and arm mechanics.",
@@ -89,16 +91,26 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) return Response.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
 
-    // Fetch image and convert to base64
+    // Fetch media (image or video) and convert to base64
     const imageResponse = await fetch(imageUrl);
     const imageBuffer = await imageResponse.arrayBuffer();
     const bytes = new Uint8Array(imageBuffer);
+
+    if (bytes.byteLength > MAX_MEDIA_BYTES) {
+      return Response.json({
+        error: `File too large (${(bytes.byteLength / 1024 / 1024).toFixed(1)}MB). Please upload a shorter video or smaller image, under ${MAX_MEDIA_BYTES / 1024 / 1024}MB.`,
+      }, { status: 400 });
+    }
+
+    // Convert in chunks to avoid building one giant string at once
+    const CHUNK_SIZE = 8192;
     let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
+    for (let i = 0; i < bytes.byteLength; i += CHUNK_SIZE) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK_SIZE));
     }
     const base64Image = btoa(binary);
     const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    const isVideo = mimeType.startsWith('video/');
 
     // Call Gemini API
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
@@ -110,7 +122,11 @@ Deno.serve(async (req) => {
           {
             parts: [
               { inline_data: { mime_type: mimeType, data: base64Image } },
-              { text: `This is a ${view || 'posture'} view image. Sport/activity category: ${category || 'general'}. ${catContext}\n\n${ANALYSIS_PROMPT}` },
+              {
+                text: isVideo
+                  ? `This is a ${view || 'posture'} view VIDEO of a movement, not a still photo. Analyze how the posture and joint alignment change over the course of the movement (e.g. at landing, at peak load, during transition), not just a single moment. Mention specific points in time when relevant. Sport/activity category: ${category || 'general'}. ${catContext}\n\n${ANALYSIS_PROMPT}`
+                  : `This is a ${view || 'posture'} view image. Sport/activity category: ${category || 'general'}. ${catContext}\n\n${ANALYSIS_PROMPT}`,
+              },
             ],
           },
         ],
