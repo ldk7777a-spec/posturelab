@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Camera, RotateCcw, X, Scan, Image, Lightbulb, Video, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
@@ -24,32 +24,6 @@ const VIEWS = (lang) => [
   { key: "front", label: T.frontView[lang], desc: T.frontDesc[lang] },
   { key: "side",  label: T.sideView[lang],  desc: T.sideDesc[lang] },
 ];
-
-// Extract a frame from a video file at a given time (seconds)
-function extractVideoFrame(file, timeSeconds = 1) {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement("video");
-    video.preload = "auto";
-    video.muted = true;
-    video.crossOrigin = "anonymous";
-    const url = URL.createObjectURL(file);
-    video.src = url;
-    video.addEventListener("loadeddata", () => {
-      video.currentTime = Math.min(timeSeconds, video.duration * 0.3);
-    });
-    video.addEventListener("seeked", () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext("2d").drawImage(video, 0, 0);
-      canvas.toBlob((blob) => {
-        URL.revokeObjectURL(url);
-        resolve(blob);
-      }, "image/jpeg", 0.92);
-    });
-    video.addEventListener("error", (e) => { URL.revokeObjectURL(url); reject(e); });
-  });
-}
 
 export default function Analyze() {
   const navigate = useNavigate();
@@ -79,15 +53,7 @@ export default function Analyze() {
     setError(null);
     setPreview(URL.createObjectURL(file));
     setPreviewType("video");
-    try {
-      setUploading(true);
-      const frame = await extractVideoFrame(file, 1);
-      await runAnalysis(frame);
-    } catch (e) {
-      setUploading(false);
-      setAnalyzing(false);
-      setError("영상에서 프레임 추출에 실패했습니다: " + e.message);
-    }
+    await runAnalysis(file);
   };
 
   const runAnalysis = async (fileOrBlob) => {
@@ -253,14 +219,14 @@ export default function Analyze() {
                         </div>
                         <div className="text-center">
                           <p className="text-sm font-bold text-[#1A1A2E]">동영상 업로드</p>
-                          <p className="text-xs text-gray-400 mt-0.5">프레임 자동 추출</p>
+                          <p className="text-xs text-gray-400 mt-0.5">동작 흐름 분석</p>
                         </div>
                       </button>
                     </div>
 
                     <div className="mt-3 bg-purple-50 border border-purple-100 rounded-xl px-4 py-3">
                       <p className="text-xs text-purple-700 font-medium">💡 동영상 분석 방법</p>
-                      <p className="text-xs text-purple-500 mt-1">동영상을 업로드하면 최적의 프레임을 자동으로 추출해 AI가 분석합니다. 영상 전체를 저장하지 않아 빠르고 가볍습니다.</p>
+                      <p className="text-xs text-purple-500 mt-1">동영상을 업로드하면 AI가 영상 전체를 보고 동작 중 자세 변화를 분석합니다. 15MB 이하, 가급적 짧은 클립을 권장합니다.</p>
                     </div>
                   </div>
 
@@ -301,7 +267,7 @@ export default function Analyze() {
                         <div className="text-center">
                           <p className="text-white font-bold text-base">
                             {uploading
-                              ? (previewType === "video" ? "프레임 추출 중..." : T.uploading[lang])
+                              ? (previewType === "video" ? "영상 업로드 중..." : T.uploading[lang])
                               : T.analyzing[lang]}
                           </p>
                           <p className="text-white/50 text-xs mt-1">{analyzing ? T.analyzingDesc[lang] : T.waitDesc[lang]}</p>
