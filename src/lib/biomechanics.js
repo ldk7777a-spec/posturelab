@@ -279,14 +279,58 @@ export function analyzePostureLocal(lm, view, lang = "ko") {
   return out;
 }
 
-// Per-frame joint angles (degrees) for the frame scrubber view.
+// Per-frame biomechanical metrics (degrees) for the frame scrubber view.
+// Includes joint flexion angles AND alignment deviation indices.
 export function frameAngles(lm) {
   const has = (...is) => is.every((i) => lm[i] && (lm[i].visibility ?? 1) >= 0.25);
   const a = (x, y, z) => (has(x, y, z) ? Math.round(angleAt(lm[x], lm[y], lm[z])) : null);
+
+  let mSh = null, mHip = null;
+  if (has(11, 12)) mSh = mid(lm[11], lm[12]);
+  if (has(23, 24)) mHip = mid(lm[23], lm[24]);
+
+  const tiltDeg = (i, j) => {
+    if (!has(i, j)) return null;
+    let d = Math.abs(Math.atan2(lm[i].y - lm[j].y, lm[i].x - lm[j].x) * 180 / Math.PI);
+    if (d > 90) d = 180 - d;
+    return Math.round(d);
+  };
+
+  let trunkLean = null;
+  if (mSh && mHip) {
+    trunkLean = Math.round(Math.abs(Math.atan2(mSh.x - mHip.x, Math.abs(mHip.y - mSh.y) + 1e-3) * 180 / Math.PI));
+  }
+
+  const turnout = (heel, fi) => {
+    if (!has(heel, fi)) return null;
+    const dx = lm[fi].x - lm[heel].x;
+    const dy = Math.abs(lm[fi].y - lm[heel].y);
+    return Math.round(Math.abs(Math.atan2(dx, dy + 1e-3) * 180 / Math.PI));
+  };
+
+  let headTilt = null;
+  if (mSh && has(0)) {
+    headTilt = Math.round(Math.abs(Math.atan2(lm[0].x - mSh.x, Math.abs(mSh.y - lm[0].y) + 1e-3) * 180 / Math.PI));
+  }
+
   return {
+    // joint flexion angles (degrees)
     leftElbow: a(11, 13, 15),
     rightElbow: a(12, 14, 16),
+    leftShoulder: a(23, 11, 13),
+    rightShoulder: a(24, 12, 14),
+    leftHip: a(11, 23, 25),
+    rightHip: a(12, 24, 26),
     leftKnee: a(23, 25, 27),
     rightKnee: a(24, 26, 28),
+    leftAnkle: a(25, 27, 29),
+    rightAnkle: a(26, 28, 30),
+    // alignment deviation indices (degrees)
+    shoulderTilt: tiltDeg(11, 12),
+    pelvicTilt: tiltDeg(23, 24),
+    trunkLean,
+    leftFootTurnout: turnout(29, 31),
+    rightFootTurnout: turnout(30, 32),
+    headTilt,
   };
 }
