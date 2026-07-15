@@ -4,6 +4,10 @@ import { ArrowLeft, Camera, RotateCcw, X, Scan, Image, Lightbulb, Video, Chevron
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useLang, T } from "@/lib/LanguageContext";
+import { getPoseLandmarker } from "@/lib/poseLandmarker";
+import { analyzeVideo, analyzeImage, pickBestFrame, captureVideoFrame, loadImage } from "@/lib/poseAnalysis";
+import { analyzePostureLocal } from "@/lib/biomechanics";
+import { drawSkeleton } from "@/lib/poseDraw";
 
 const CATEGORIES = [
   { key: "general",  label: "일반 자세",  emoji: "🧍", desc: "기본 정적 자세 분석" },
@@ -36,64 +40,112 @@ export default function Analyze() {
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState(null);
+  const [analyzingFile, setAnalyzingFile] = useState(null); // retains the File so we can revoke safely later
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const videoInputRef = useRef(null);
+  const previewUrlRef = useRef(null);
 
   const handleImageFile = async (file) => {
     if (!file) return;
     setError(null);
-    setPreview(URL.createObjectURL(file));
-    setPreviewType("image");
-    await runAnalysis(file);
+    setupPreview(file, "image");
+    await runLocalAnalysis(file, "image");
   };
 
   const handleVideoFile = async (file) => {
     if (!file) return;
     setError(null);
-    setPreview(URL.createObjectURL(file));
-    setPreviewType("video");
-    await runAnalysis(file);
+    setupPreview(file, "video");
+    await runLocalAnalysis(file, "video");
   };
 
-  const runAnalysis = async (fileOrBlob) => {
+  const setupPreview = (file, type) => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const url = URL.createObjectURL(file);
+    previewUrlRef.current = url;
+    setAnalyzingFile(file);
+    setPreview(url);
+    setPreviewType(type);
+  };
+
+  const runLocalAnalysis = async (file, type) => {
     try {
-      setUploading(true);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: fileOrBlob });
-      setUploading(false);
       setAnalyzing(true);
-      const response = await base44.functions.invoke("analyzePosture", {
-        imageUrl: file_url,
-        view,
-        category,
-      });
+      setUploading(false);
+      const landmarker = await getPoseLandmarker();
+      if (!landmarker) throw new Error("AI 자세 인식 모델을 불러오지 못했습니다.");
+      if (!category) throw new Error("종목을 먼저 선택해 주세요.");
+      if (!view) throw new Error("관점을 먼저 선택해 주세요.");
+
+      let landmarks = null;
+      let frameCanvas = null;
+
+      if (type === "video") {
+        const v = document.createElement("video");
+        v.src = URL.createObjectURL(file);
+        v.muted = true;
+        v.playsInline = true;
+        await new Promise((res, rej) => {
+          v.addEventListener("loadeddata", res, { once: true });
+          v.addEventListener("error", rej, { once: true });
+          setTimeout(() => res(), 4000);
+        });
+        const { frames } = await analyzeVideo(v, landmarker);
+        if (!frames.length) throw new Error("영상에서 자세를 감지하지 못했습니다. 전신이 명확히 보이도록 다시 시도해 주세요.");
+        const best = pickBestFrame(frames);
+        landmarks = best.landmarks;
+        frameCanvas = await captureVideoFrame(v, best.time);
+        URL.revokeObjectURL(v.src);
+      } else {
+        const img = await loadImage(file);
+        const res = analyzeImage(img, landmarker);
+        landmarks = res.landmarks;
+        if (!landmarks) throw new Error("이미지에서 자세를 감지하지 못했습니다. 전신이 명확히 보이도록 다시 촬영해 주세요.");
+        frameCanvas = document.createElement("canvas");
+        frameCanvas.width = img.naturalWidth || 640;
+        frameCanvas.height = img.naturalHeight || 480;
+        frameCanvas.getContext("2d").drawImage(img, 0, 0, frameCanvas.width, frameCanvas.height);
+      }
+
+      // overlay skeleton onto the captured frame
+      drawSkeleton(frameCanvas.getContext("2d"), landmarks, frameCanvas.width, frameCanvas.height);
+      const blob = await new Promise((res) => frameCanvas.toBlob(res, "image/jpeg", 0.92));
+
       setAnalyzing(false);
-      if (response.data?.success) {
-        // Save record
-        try {
-          const me = await base44.auth.me();
+      setUploading(true);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: blob });
+      setUploading(false);
+
+      const result = analyzePostureLocal(landmarks, view, lang);
+
+      // persist record (skips silently if not logged in)
+      try {
+        const me = await base44.auth.me();
+        if (me?.id) {
           await base44.entities.AnalysisRecord.create({
             user_id: me.id,
             category,
             view,
             image_url: file_url,
-            overall_score: response.data.result?.overallScore,
-            result: response.data.result,
+            overall_score: result.overallScore,
+            result,
           });
-        } catch { /* not logged in, skip save */ }
-        navigate("/report", { state: { result: response.data.result, imageUrl: file_url } });
-      } else {
-        setError(response.data?.error || "분석 중 오류가 발생했습니다.");
-      }
+        }
+      } catch { /* not logged in — result still shown */ }
+
+      navigate("/report", { state: { result, imageUrl: file_url } });
     } catch (e) {
-      setUploading(false);
       setAnalyzing(false);
-      setError(e.message || "오류가 발생했습니다.");
+      setUploading(false);
+      setError(e?.message || "분석 중 오류가 발생했습니다.");
     }
   };
 
   const reset = () => {
+    if (previewUrlRef.current) { URL.revokeObjectURL(previewUrlRef.current); previewUrlRef.current = null; }
     setPreview(null);
+    setAnalyzingFile(null);
     setError(null);
     setUploading(false);
     setAnalyzing(false);
@@ -224,9 +276,9 @@ export default function Analyze() {
                       </button>
                     </div>
 
-                    <div className="mt-3 bg-purple-50 border border-purple-100 rounded-xl px-4 py-3">
-                      <p className="text-xs text-purple-700 font-medium">💡 동영상 분석 방법</p>
-                      <p className="text-xs text-purple-500 mt-1">동영상을 업로드하면 AI가 영상 전체를 보고 동작 중 자세 변화를 분석합니다. 15MB 이하, 가급적 짧은 클립을 권장합니다.</p>
+                    <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                      <p className="text-xs text-emerald-700 font-medium">⚡ 기기 내 자세 AI 분석</p>
+                      <p className="text-xs text-emerald-500 mt-1">MediaPipe Pose가 브라우저에서 33개 관절을 직접 추적해 점수·코칭을 산출합니다. 영상은 서버로 전송되지 않고 기기에서 안전하게 분석됩니다.</p>
                     </div>
                   </div>
 
@@ -266,11 +318,11 @@ export default function Analyze() {
                         </div>
                         <div className="text-center">
                           <p className="text-white font-bold text-base">
-                            {uploading
-                              ? (previewType === "video" ? "영상 업로드 중..." : T.uploading[lang])
-                              : T.analyzing[lang]}
+                            {uploading ? "결과 저장 중..." : previewType === "video" ? "관절 추출 중..." : T.analyzing[lang]}
                           </p>
-                          <p className="text-white/50 text-xs mt-1">{analyzing ? T.analyzingDesc[lang] : T.waitDesc[lang]}</p>
+                          <p className="text-white/50 text-xs mt-1">
+                            {uploading ? "잠시만 기다려 주세요" : "MediaPipe가 기기에서 자세를 분석하고 있어요"}
+                          </p>
                         </div>
                       </div>
                     )}
