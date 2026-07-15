@@ -111,10 +111,11 @@ export default function Analyze() {
       // overlay skeleton onto the captured frame
       drawSkeleton(frameCanvas.getContext("2d"), landmarks, frameCanvas.width, frameCanvas.height);
       const blob = await new Promise((res) => frameCanvas.toBlob(res, "image/jpeg", 0.92));
+      const file = new File([blob], "analysis.jpg", { type: "image/jpeg" });
 
       setAnalyzing(false);
       setUploading(true);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: blob });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setUploading(false);
 
       const result = analyzePostureLocal(landmarks, view, lang);
