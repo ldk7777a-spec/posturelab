@@ -1,4 +1,4 @@
-// Skeleton rendering for the analyzed-frame snapshot shown in the report.
+// Skeleton rendering for the analyzed-frame snapshot.
 
 const CONNECTIONS = [
   [11, 12], // shoulders
@@ -12,15 +12,17 @@ const CONNECTIONS = [
   [28, 30], [30, 32], [28, 32], // right foot
   [15, 17], [15, 19], [15, 21], // left hand
   [16, 18], [16, 20], [16, 22], // right hand
-  [0, 11], [0, 12], // neck to shoulders (head approx)
+  [0, 11], [0, 12], // neck to shoulders
 ];
 
-export function drawSkeleton(ctx, landmarks, w, h) {
+export function drawSkeleton(ctx, landmarks, w, h, opts = {}) {
   if (!landmarks?.length) return;
+  const nodeColor = opts.nodeColor || "#FF6B4A";
+  const lineColor = opts.lineColor || nodeColor;
   ctx.save();
   ctx.lineWidth = Math.max(2, w * 0.004);
-  ctx.strokeStyle = "rgba(255, 107, 74, 0.95)";
-  ctx.fillStyle = "#FF6B4A";
+  ctx.strokeStyle = lineColor;
+  ctx.fillStyle = nodeColor;
   ctx.shadowColor = "rgba(0,0,0,0.6)";
   ctx.shadowBlur = 6;
 

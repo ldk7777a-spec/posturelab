@@ -278,3 +278,15 @@ export function analyzePostureLocal(lm, view, lang = "ko") {
 
   return out;
 }
+
+// Per-frame joint angles (degrees) for the frame scrubber view.
+export function frameAngles(lm) {
+  const has = (...is) => is.every((i) => lm[i] && (lm[i].visibility ?? 1) >= 0.25);
+  const a = (x, y, z) => (has(x, y, z) ? Math.round(angleAt(lm[x], lm[y], lm[z])) : null);
+  return {
+    leftElbow: a(11, 13, 15),
+    rightElbow: a(12, 14, 16),
+    leftKnee: a(23, 25, 27),
+    rightKnee: a(24, 26, 28),
+  };
+}

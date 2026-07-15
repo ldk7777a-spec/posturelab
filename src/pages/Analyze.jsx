@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useLang, T } from "@/lib/LanguageContext";
 import { getPoseLandmarker } from "@/lib/poseLandmarker";
-import { analyzeVideo, analyzeImage, pickBestFrame, captureVideoFrame, loadImage } from "@/lib/poseAnalysis";
+import { analyzeVideo, analyzeImage, pickBestFrame, loadImage, loadImageEl } from "@/lib/poseAnalysis";
 import { analyzePostureLocal } from "@/lib/biomechanics";
 import { drawSkeleton } from "@/lib/poseDraw";
 
@@ -80,6 +80,7 @@ export default function Analyze() {
 
       let landmarks = null;
       let frameCanvas = null;
+      let videoFrames = null;
 
       if (type === "video") {
         const v = document.createElement("video");
@@ -93,9 +94,14 @@ export default function Analyze() {
         });
         const { frames } = await analyzeVideo(v, landmarker);
         if (!frames.length) throw new Error("영상에서 자세를 감지하지 못했습니다. 전신이 명확히 보이도록 다시 시도해 주세요.");
+        videoFrames = frames;
         const best = pickBestFrame(frames);
         landmarks = best.landmarks;
-        frameCanvas = await captureVideoFrame(v, best.time);
+        const bi = await loadImageEl(best.image);
+        frameCanvas = document.createElement("canvas");
+        frameCanvas.width = best.width || bi.naturalWidth || 640;
+        frameCanvas.height = best.height || bi.naturalHeight || 480;
+        frameCanvas.getContext("2d").drawImage(bi, 0, 0, frameCanvas.width, frameCanvas.height);
         URL.revokeObjectURL(v.src);
       } else {
         const img = await loadImage(file);
@@ -135,7 +141,11 @@ export default function Analyze() {
         }
       } catch { /* not logged in — result still shown */ }
 
-      navigate("/report", { state: { result, imageUrl: file_url } });
+      if (videoFrames) {
+        navigate("/frame-analysis", { state: { frames: videoFrames, category, view, result, imageUrl: file_url } });
+      } else {
+        navigate("/report", { state: { result, imageUrl: file_url } });
+      }
     } catch (e) {
       setAnalyzing(false);
       setUploading(false);
