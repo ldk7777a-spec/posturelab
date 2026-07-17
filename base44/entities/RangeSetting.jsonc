@@ -1,0 +1,9 @@
+{
+  "name": "RangeSetting",
+  "type": "object",
+  "properties": {
+    "ranges": {
+      "type": "object"
+    }
+  }
+}

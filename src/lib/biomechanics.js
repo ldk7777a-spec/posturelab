@@ -313,6 +313,16 @@ export function frameAngles(lm) {
     headTilt = Math.round(Math.abs(Math.atan2(lm[0].x - mSh.x, Math.abs(mSh.y - lm[0].y) + 1e-3) * 180 / Math.PI));
   }
 
+  // 견갑-골반 분리각: 어깨선·골반선 각각의 회전각(atan2) 차이의 절댓값
+  let shoulderRotation = null, pelvicRotation = null, separationAngle = null;
+  if (has(11, 12)) shoulderRotation = Math.atan2(lm[11].y - lm[12].y, lm[11].x - lm[12].x) * 180 / Math.PI;
+  if (has(23, 24)) pelvicRotation = Math.atan2(lm[23].y - lm[24].y, lm[23].x - lm[24].x) * 180 / Math.PI;
+  if (shoulderRotation != null && pelvicRotation != null) {
+    let d = Math.abs(shoulderRotation - pelvicRotation);
+    if (d > 180) d = 360 - d;
+    separationAngle = Math.round(d);
+  }
+
   return {
     // joint flexion angles (degrees)
     leftElbow: a(11, 13, 15),
@@ -332,5 +342,8 @@ export function frameAngles(lm) {
     leftFootTurnout: turnout(29, 31),
     rightFootTurnout: turnout(30, 32),
     headTilt,
+    shoulderRotation: shoulderRotation != null ? Math.round(shoulderRotation) : null,
+    pelvicRotation: pelvicRotation != null ? Math.round(pelvicRotation) : null,
+    separationAngle,
   };
 }
