@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { ArrowLeft, FileText, Settings2 } from "lucide-react";
 import { drawSkeleton } from "@/lib/poseDraw";
@@ -7,8 +7,6 @@ import {
   ANGLE_METRICS, ALIGN_METRICS, ASYMM_PAIRS,
   DEFAULT_RANGES, getRating, asymRating, RATING_STYLES,
 } from "@/lib/metricRanges";
-import { generateFeedback } from "@/lib/feedbackRules";
-import FeedbackSection from "@/components/analysis/FeedbackSection";
 import AngleGraph from "@/components/analysis/AngleGraph";
 import { base44 } from "@/api/base44Client";
 
@@ -55,19 +53,6 @@ function SummaryCard({ label, s, hint, range, ratingOverride }) {
         )}
       </div>
       <p className="text-xs text-gray-500 mt-1">{text}</p>
-    </div>
-  );
-}
-
-function SeparationCard({ value, rating }) {
-  const r = RATING_STYLES[rating] || RATING_STYLES.none;
-  return (
-    <div className={`bg-white rounded-lg border-2 p-3 ${r.border}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-500">견갑-골반 분리각</p>
-        {r.label && <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${r.badge}`}>{r.label}</span>}
-      </div>
-      <p className="text-3xl font-bold text-[#FF6B4A] mt-1">{value == null ? "—" : `${value}°`}</p>
     </div>
   );
 }
@@ -139,8 +124,6 @@ export default function FrameAnalysis() {
     });
   }, [idx, loaded, frames]);
 
-  const feedback = useMemo(() => generateFeedback(frames, ranges), [frames, ranges]);
-
   if (!frames.length) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#F9FAFB] px-6 text-center">
@@ -195,7 +178,7 @@ export default function FrameAnalysis() {
     <div className="min-h-screen bg-[#F9FAFB]">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-md mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="max-w-md lg:max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
           <Link to="/analyze" className="text-gray-400 hover:text-[#1A1A2E] transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
@@ -225,132 +208,128 @@ export default function FrameAnalysis() {
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
-        {/* 4. 코칭 피드백 (최상단) */}
-        <FeedbackSection sentences={feedback} />
-
-        {/* Video frame + skeleton */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-3">
-          <div className="relative mx-auto" style={{ maxWidth: 360 }}>
-            <canvas
-              ref={canvasRef}
-              className="w-full block rounded-xl bg-black"
-              style={{ aspectRatio: frames[safeIdx] ? `${frames[safeIdx].width} / ${frames[safeIdx].height}` : "9 / 16" }}
-            />
-          </div>
-
-          {/* Slider */}
-          <div className="mt-4">
-            <input
-              type="range"
-              min={0}
-              max={frames.length - 1}
-              value={safeIdx}
-              onChange={(e) => setIdx(Number(e.target.value))}
-              className="w-full accent-[#007BFF] cursor-pointer"
-            />
-            <p className="mt-1.5 text-xs text-gray-500">
-              {safeIdx + 1} / {frames.length} 프레임{category ? ` · ${category}` : ""}
-            </p>
-          </div>
-        </div>
-
-        {/* 1. 관절 가동각 + 견갑-골반 분리각 (옆 배치) */}
-        <div className="grid md:grid-cols-3 gap-3">
-          <div className="md:col-span-2">
-            <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 관절 가동각</p>
-            <div className="grid grid-cols-2 gap-2">
-              {ANGLE_METRICS.map((j) => (
-                <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
-              ))}
-            </div>
-          </div>
-          <div className="md:col-span-1 flex flex-col gap-2">
-            <SeparationCard value={ang.separationAngle} rating={getRating(ang.separationAngle, ranges.separationAngle)} />
-            <p className="text-[10px] text-gray-400 leading-relaxed">{SEP_DESC}</p>
-          </div>
-        </div>
-
-        {/* 현재 프레임 — 정렬 지표 */}
-        <div>
-          <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 정렬 지표</p>
-          <div className="grid grid-cols-2 gap-2">
-            {ALIGN_METRICS.map((j) => (
-              <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
-            ))}
-          </div>
-        </div>
-
-        {/* 영상 전체 요약 — 관절 가동각 */}
-        <div>
-          <p className="text-sm font-bold text-[#1A1A2E] mb-2">영상 전체 요약 · 관절 가동각</p>
-          <div className="grid grid-cols-2 gap-2">
-            {angleSummary.map((s) => (
-              <SummaryCard key={s.key} label={s.label} s={s} range={ranges[s.key]} />
-            ))}
-          </div>
-        </div>
-
-        {/* 영상 전체 요약 — 정렬 지표 */}
-        <div>
-          <p className="text-sm font-bold text-[#1A1A2E] mb-2">영상 전체 요약 · 정렬 지표</p>
-          <div className="grid grid-cols-2 gap-2">
-            {alignSummary.map((s) => (
-              <SummaryCard key={s.key} label={s.label} s={s} hint={s.hint} range={ranges[s.key]} />
-            ))}
-          </div>
-        </div>
-
-        {/* 영상 전체 요약 — 분리각 (최대값 프레임 표시) */}
-        <div>
-          <p className="text-sm font-bold text-[#1A1A2E] mb-2">영상 전체 요약 · 견갑-골반 분리각</p>
-          <div className="bg-white rounded-lg border-2 p-4">
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div>
-                <p className="text-[11px] text-gray-400">최소</p>
-                <p className="text-xl font-bold text-gray-800">{sepSummary.min == null ? "—" : `${sepSummary.min}°`}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-gray-400">평균</p>
-                <p className="text-xl font-bold text-[#1A1A2E]">{sepSummary.avg == null ? "—" : `${sepSummary.avg}°`}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-gray-400">최대</p>
-                <p className="text-xl font-bold text-[#FF6B4A]">
-                  {sepSummary.max == null ? "—" : `${sepSummary.max}°`}
-                </p>
-                {sepSummary.maxFrame != null && (
-                  <p className="text-[10px] text-gray-400">프레임 {sepSummary.maxFrame}</p>
-                )}
-              </div>
-            </div>
-            <p className="text-[10px] text-gray-400 leading-relaxed mt-3">{SEP_DESC}</p>
-          </div>
-        </div>
-
-        {/* 영상 전체 요약 — 좌우 비대칭 */}
-        <div>
-          <p className="text-sm font-bold text-[#1A1A2E] mb-2">좌우 비대칭 지표 · |좌 − 우|</p>
-          {asymSummary.every((s) => s.avg == null) ? (
-            <div className="bg-white rounded-lg border-2 border-gray-200 p-3">
-              <p className="text-xs text-gray-400">양측 관절을 모두 인식한 프레임이 필요합니다.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-2">
-              {asymSummary.map((s) => (
-                <SummaryCard
-                  key={s.label}
-                  label={s.label}
-                  s={s}
-                  ratingOverride={asymRating(s.avg)}
+      {/* Desktop: frame left, metrics right (horizontal grid); Mobile: stacked */}
+      <div className="max-w-md lg:max-w-5xl mx-auto px-4 py-6">
+        <div className="lg:grid lg:grid-cols-[360px_minmax(0,1fr)] lg:gap-6 lg:items-start">
+          {/* Frame + slider */}
+          <div className="lg:sticky lg:top-[88px]">
+            <div className="bg-white rounded-2xl border border-gray-100 p-3">
+              <div className="relative mx-auto" style={{ maxWidth: 360 }}>
+                <canvas
+                  ref={canvasRef}
+                  className="w-full block rounded-xl bg-black"
+                  style={{ aspectRatio: frames[safeIdx] ? `${frames[safeIdx].width} / ${frames[safeIdx].height}` : "9 / 16" }}
                 />
-              ))}
+              </div>
+              <div className="mt-4">
+                <input
+                  type="range"
+                  min={0}
+                  max={frames.length - 1}
+                  value={safeIdx}
+                  onChange={(e) => setIdx(Number(e.target.value))}
+                  className="w-full accent-[#007BFF] cursor-pointer"
+                />
+                <p className="mt-1.5 text-xs text-gray-500">
+                  {safeIdx + 1} / {frames.length} 프레임{category ? ` · ${category}` : ""}
+                </p>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* 3. 각도 변화 그래프 */}
-        <AngleGraph frames={frames} selectedIdx={safeIdx} onSelectFrame={setIdx} />
+          {/* Metrics — 7 blocks: horizontal 2-col grid on desktop, stacked on mobile */}
+          <div className="mt-6 lg:mt-0 space-y-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
+            {/* 1. 현재 프레임 · 관절 가동각 */}
+            <div>
+              <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 관절 가동각</p>
+              <div className="grid grid-cols-2 gap-2">
+                {ANGLE_METRICS.map((j) => (
+                  <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
+                ))}
+              </div>
+            </div>
+
+            {/* 2. 현재 프레임 · 정렬 지표 */}
+            <div>
+              <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 정렬 지표</p>
+              <div className="grid grid-cols-2 gap-2">
+                {ALIGN_METRICS.map((j) => (
+                  <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
+                ))}
+              </div>
+            </div>
+
+            {/* 3. 영상 전체 요약 · 관절 가동각 */}
+            <div>
+              <p className="text-sm font-bold text-[#1A1A2E] mb-2">영상 전체 요약 · 관절 가동각</p>
+              <div className="grid grid-cols-2 gap-2">
+                {angleSummary.map((s) => (
+                  <SummaryCard key={s.key} label={s.label} s={s} range={ranges[s.key]} />
+                ))}
+              </div>
+            </div>
+
+            {/* 4. 영상 전체 요약 · 정렬 지표 */}
+            <div>
+              <p className="text-sm font-bold text-[#1A1A2E] mb-2">영상 전체 요약 · 정렬 지표</p>
+              <div className="grid grid-cols-2 gap-2">
+                {alignSummary.map((s) => (
+                  <SummaryCard key={s.key} label={s.label} s={s} hint={s.hint} range={ranges[s.key]} />
+                ))}
+              </div>
+            </div>
+
+            {/* 5. 견갑-골반 분리각 (현재값 + 전체 요약) */}
+            <div>
+              <p className="text-sm font-bold text-[#1A1A2E] mb-2">견갑-골반 분리각</p>
+              <div className="bg-white rounded-lg border-2 p-4">
+                <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-50">
+                  <span className="text-xs text-gray-500">현재 프레임</span>
+                  <span className="text-2xl font-bold text-[#FF6B4A]">
+                    {ang.separationAngle == null ? "—" : `${ang.separationAngle}°`}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-[10px] text-gray-400">최소</p>
+                    <p className="text-base font-bold text-gray-700">{sepSummary.min == null ? "—" : `${sepSummary.min}°`}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400">평균</p>
+                    <p className="text-base font-bold text-[#1A1A2E]">{sepSummary.avg == null ? "—" : `${sepSummary.avg}°`}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400">최대</p>
+                    <p className="text-base font-bold text-[#FF6B4A]">{sepSummary.max == null ? "—" : `${sepSummary.max}°`}</p>
+                    {sepSummary.maxFrame != null && <p className="text-[10px] text-gray-400">프레임 {sepSummary.maxFrame}</p>}
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-400 leading-relaxed mt-3">{SEP_DESC}</p>
+              </div>
+            </div>
+
+            {/* 6. 좌우 비대칭 지표 */}
+            <div>
+              <p className="text-sm font-bold text-[#1A1A2E] mb-2">좌우 비대칭 지표 · |좌 − 우|</p>
+              {asymSummary.every((s) => s.avg == null) ? (
+                <div className="bg-white rounded-lg border-2 border-gray-200 p-3">
+                  <p className="text-xs text-gray-400">양측 관절을 모두 인식한 프레임이 필요합니다.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2">
+                  {asymSummary.map((s) => (
+                    <SummaryCard key={s.label} label={s.label} s={s} ratingOverride={asymRating(s.avg)} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 7. 각도 변화 그래프 — 전폭 */}
+            <div className="lg:col-span-2">
+              <AngleGraph frames={frames} selectedIdx={safeIdx} onSelectFrame={setIdx} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
