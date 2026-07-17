@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Users, BarChart2, Activity, Search, TrendingUp, GitCompare, Check } from "lucide-react";
+import { ArrowLeft, Users, BarChart2, Activity, Search, GitCompare, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -55,10 +55,6 @@ export default function Admin() {
     </div>
   );
 
-  const avgScore = records.length
-    ? Math.round(records.reduce((s, r) => s + (r.overall_score || 0), 0) / records.length)
-    : 0;
-
   const catDist = {};
   records.forEach((r) => { catDist[r.category] = (catDist[r.category] || 0) + 1; });
   const catChartData = Object.entries(catDist).map(([k, v]) => ({
@@ -110,11 +106,10 @@ export default function Admin() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
         {/* Stats overview */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {[
             { label: "총 회원수", value: users.length, icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
             { label: "총 분석 횟수", value: records.length, icon: Activity, color: "text-[#FF6B4A]", bg: "bg-orange-50" },
-            { label: "평균 자세 점수", value: `${avgScore}점`, icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-50" },
             { label: "종목 수", value: Object.keys(catDist).length, icon: BarChart2, color: "text-purple-500", bg: "bg-purple-50" },
           ].map((s) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
@@ -178,14 +173,12 @@ export default function Admin() {
                   <th className="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">회원</th>
                   <th className="text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:table-cell">가입일</th>
                   <th className="text-center px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">분석수</th>
-                  <th className="text-center px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:table-cell">평균점수</th>
                   <th className="text-center px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">권한</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.map((u) => {
                   const urecs = userRecordMap[u.id] || [];
-                  const uavg = urecs.length ? Math.round(urecs.reduce((s, r) => s + (r.overall_score || 0), 0) / urecs.length) : null;
                   return (
                     <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-4">
@@ -206,13 +199,6 @@ export default function Admin() {
                       </td>
                       <td className="px-5 py-4 text-center">
                         <span className="text-sm font-bold text-[#1A1A2E]">{urecs.length}</span>
-                      </td>
-                      <td className="px-5 py-4 text-center hidden sm:table-cell">
-                        {uavg !== null ? (
-                          <span className={`text-sm font-bold ${uavg >= 80 ? "text-emerald-500" : uavg >= 60 ? "text-amber-500" : "text-red-500"}`}>
-                            {uavg}
-                          </span>
-                        ) : <span className="text-xs text-gray-300">-</span>}
                       </td>
                       <td className="px-5 py-4 text-center">
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
@@ -298,9 +284,6 @@ export default function Admin() {
                       {u ? u.full_name : "알 수 없음"} · {new Date(r.created_date).toLocaleDateString("ko-KR")}
                     </p>
                   </div>
-                  <div className={`text-lg font-extrabold ${
-                    (r.overall_score || 0) >= 80 ? "text-emerald-500" : (r.overall_score || 0) >= 60 ? "text-amber-500" : "text-red-500"
-                  }`}>{r.overall_score || 0}</div>
                 </div>
               );
             })}

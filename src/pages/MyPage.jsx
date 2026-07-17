@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, User, BarChart2, Calendar, TrendingUp, Edit2, Save, X, LogOut } from "lucide-react";
+import { ArrowLeft, Edit2, Save, X, LogOut, BarChart2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLang } from "@/lib/LanguageContext";
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 const SPORT_LABELS = {
   general: "일반 자세", soccer: "축구", baseball: "야구", running: "달리기",
@@ -21,7 +20,6 @@ export default function MyPage() {
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState("history");
 
   useEffect(() => {
     const load = async () => {
@@ -65,30 +63,6 @@ export default function MyPage() {
   const handleLogout = () => {
     base44.auth.logout("/");
   };
-
-  const avgScore = records.length > 0
-    ? Math.round(records.reduce((s, r) => s + (r.overall_score || 0), 0) / records.length)
-    : 0;
-
-  const scoreHistory = records.slice(0, 10).reverse().map((r, i) => ({
-    idx: i + 1,
-    score: r.overall_score || 0,
-    date: new Date(r.created_date).toLocaleDateString("ko-KR", { month: "short", day: "numeric" }),
-  }));
-
-  const catScores = {};
-  records.forEach((r) => {
-    if (r.result?.categories) {
-      Object.entries(r.result.categories).forEach(([k, v]) => {
-        if (!catScores[k]) catScores[k] = [];
-        catScores[k].push(v.score || 0);
-      });
-    }
-  });
-  const radarData = Object.entries(catScores).map(([k, arr]) => ({
-    subject: { spine: "척추", shoulders: "어깨", pelvis: "골반", knees: "무릎", feet: "발" }[k] || k,
-    score: Math.round(arr.reduce((a, b) => a + b, 0) / arr.length),
-  }));
 
   if (!user) {
     return (
@@ -192,10 +166,9 @@ export default function MyPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-3 pt-4 border-t border-gray-100">
+            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
               {[
                 { label: "총 분석 횟수", value: `${records.length}회` },
-                { label: "평균 점수", value: records.length ? `${avgScore}점` : "-" },
                 { label: "목표", value: profile?.goal || "-" },
               ].map((s) => (
                 <div key={s.label} className="text-center">
@@ -207,106 +180,45 @@ export default function MyPage() {
           )}
         </motion.div>
 
-        {/* Tabs */}
-        <div className="flex bg-white rounded-xl border border-gray-100 p-1 gap-1">
-          {[
-            { key: "history", label: "분석 히스토리" },
-            { key: "stats", label: "통계" },
-          ].map(({ key, label }) => (
-            <button key={key} onClick={() => setActiveTab(key)}
-              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-                activeTab === key ? "bg-[#FF6B4A] text-white" : "text-gray-500 hover:text-[#1A1A2E]"
-              }`}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* History Tab */}
-        {activeTab === "history" && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-            {records.length === 0 ? (
-              <div className="bg-white rounded-2xl p-12 text-center text-gray-400">
-                <BarChart2 className="w-10 h-10 mx-auto mb-3 text-gray-200" />
-                <p className="text-sm">아직 분석 기록이 없습니다</p>
-                <Link to="/analyze" className="mt-4 inline-block text-sm text-[#FF6B4A] font-semibold hover:underline">
-                  첫 분석 시작하기 →
-                </Link>
-              </div>
-            ) : (
-              records.map((r) => (
-                <div key={r.id} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-sm transition-shadow cursor-pointer"
-                  onClick={() => {
-                    if (r.video_url && r.frames?.list?.length) {
-                      navigate("/frame-analysis", { state: { videoUrl: r.video_url, framesData: r.frames.list, category: r.category, view: r.view, result: r.result, imageUrl: r.image_url } });
-                    } else {
-                      navigate("/report", { state: { result: r.result, imageUrl: r.image_url } });
-                    }
-                  }}>
-                  {r.image_url && (
-                    <img src={r.image_url} alt="분석 이미지" className="w-14 h-14 rounded-xl object-cover flex-shrink-0 bg-gray-100" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-[#1A1A2E]">{SPORT_LABELS[r.category] || r.category}</p>
-                      {r.video_url && r.frames?.list?.length && (
-                        <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full">동영상</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(r.created_date).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
-                      {r.view && ` · ${r.view === "front" ? "정면" : "측면"}`}
-                    </p>
+        {/* History */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+          {records.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 text-center text-gray-400">
+              <BarChart2 className="w-10 h-10 mx-auto mb-3 text-gray-200" />
+              <p className="text-sm">아직 분석 기록이 없습니다</p>
+              <Link to="/analyze" className="mt-4 inline-block text-sm text-[#FF6B4A] font-semibold hover:underline">
+                첫 분석 시작하기 →
+              </Link>
+            </div>
+          ) : (
+            records.map((r) => (
+              <div key={r.id} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-sm transition-shadow cursor-pointer"
+                onClick={() => {
+                  if (r.video_url && r.frames?.list?.length) {
+                    navigate("/frame-analysis", { state: { videoUrl: r.video_url, framesData: r.frames.list, category: r.category, view: r.view, result: r.result, imageUrl: r.image_url } });
+                  } else {
+                    navigate("/report", { state: { result: r.result, imageUrl: r.image_url } });
+                  }
+                }}>
+                {r.image_url && (
+                  <img src={r.image_url} alt="분석 이미지" className="w-14 h-14 rounded-xl object-cover flex-shrink-0 bg-gray-100" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-[#1A1A2E]">{SPORT_LABELS[r.category] || r.category}</p>
+                    {r.video_url && r.frames?.list?.length && (
+                      <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full">동영상</span>
+                    )}
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className={`text-xl font-extrabold ${
-                      r.overall_score >= 80 ? "text-emerald-500" : r.overall_score >= 60 ? "text-amber-500" : "text-red-500"
-                    }`}>{r.overall_score || 0}</p>
-                    <p className="text-xs text-gray-400">/ 100</p>
-                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {new Date(r.created_date).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
+                    {r.view && ` · ${r.view === "front" ? "정면" : "측면"}`}
+                  </p>
                 </div>
-              ))
-            )}
-          </motion.div>
-        )}
-
-        {/* Stats Tab */}
-        {activeTab === "stats" && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-            {scoreHistory.length > 1 && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-[#1A1A2E] mb-4">점수 변화 추이</h3>
-                <ResponsiveContainer width="100%" height={180}>
-                  <LineChart data={scoreHistory}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="score" stroke="#FF6B4A" strokeWidth={2} dot={{ r: 4, fill: "#FF6B4A" }} />
-                  </LineChart>
-                </ResponsiveContainer>
               </div>
-            )}
-            {radarData.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-[#1A1A2E] mb-4">카테고리별 평균 점수</h3>
-                <ResponsiveContainer width="100%" height={220}>
-                  <RadarChart data={radarData}>
-                    <PolarGrid stroke="#f0f0f0" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#6B7280" }} />
-                    <Radar dataKey="score" stroke="#FF6B4A" fill="#FF6B4A" fillOpacity={0.2} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-            {records.length === 0 && (
-              <div className="bg-white rounded-2xl p-12 text-center text-gray-400">
-                <TrendingUp className="w-10 h-10 mx-auto mb-3 text-gray-200" />
-                <p className="text-sm">분석 기록이 쌓이면 통계가 표시됩니다</p>
-              </div>
-            )}
-          </motion.div>
-        )}
+            ))
+          )}
+        </motion.div>
       </div>
     </div>
   );

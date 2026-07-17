@@ -76,9 +76,7 @@ function CompareSide({ rec, ranges }) {
           <p className="text-sm font-bold text-[#1A1A2E] truncate">{rec.category || "분석"}</p>
           {rec.userName && <p className="text-xs text-gray-400 truncate">{rec.userName}</p>}
         </div>
-        {rec.result?.overallScore != null && (
-          <span className="text-sm font-bold text-[#FF6B4A] flex-shrink-0">총점 {rec.result.overallScore}</span>
-        )}
+
       </div>
 
       {/* frame */}

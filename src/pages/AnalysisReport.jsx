@@ -1,35 +1,8 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useLang, T } from "@/lib/LanguageContext";
-import { ArrowLeft, TrendingUp, AlertTriangle, CheckCircle2, BarChart2, ChevronDown, ChevronUp, Camera } from "lucide-react";
+import { ArrowLeft, AlertTriangle, ChevronDown, ChevronUp, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
-} from "recharts";
-
-// ── Circular gauge ────────────────────────────────────────────────────────────
-function ScoreGauge({ score, size = 120 }) {
-  const r = 42;
-  const circ = 2 * Math.PI * r;
-  const color = score >= 80 ? "#10B981" : score >= 60 ? "#F59E0B" : "#EF4444";
-  return (
-    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="10" />
-        <circle
-          cx="50" cy="50" r={r} fill="none"
-          stroke={color} strokeWidth="10" strokeLinecap="round"
-          strokeDasharray={circ}
-          strokeDashoffset={circ * (1 - score / 100)}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-extrabold text-white">{score}</span>
-        <span className="text-xs text-white/50">/100</span>
-      </div>
-    </div>
-  );
-}
 
 // ── Category accordion ────────────────────────────────────────────────────────
 const CAT_COLORS = {
@@ -44,7 +17,6 @@ function CategoryCard({ catKey, data, lang }) {
   const [open, setOpen] = useState(false);
   const color = CAT_COLORS[catKey] || "#FF6B4A";
   const label = CAT_LABELS[catKey] || catKey;
-  const score = data?.score ?? 0;
   const hasEquipmentFlag = data?.flags?.length > 0;
 
   return (
@@ -54,7 +26,7 @@ function CategoryCard({ catKey, data, lang }) {
         onClick={() => setOpen((o) => !o)}
       >
         <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${color}15` }}>
-          <span className="text-xs font-bold" style={{ color }}>{score}</span>
+          <span className="w-2 h-2 rounded-full" style={{ background: color }} />
         </div>
         <div className="flex-1 text-left">
           <p className="text-sm font-bold text-[#1A1A2E]">{label}</p>
@@ -62,12 +34,7 @@ function CategoryCard({ catKey, data, lang }) {
             <p className="text-xs text-amber-500 mt-0.5">⚠ {T.equipmentFlag[lang]}</p>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: `${score}%`, background: color }} />
-          </div>
-          {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-        </div>
+        {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
       </button>
       <AnimatePresence>
         {open && (
@@ -106,21 +73,8 @@ export default function AnalysisReport() {
   const aiResult = location.state?.result;
   const imageUrl = location.state?.imageUrl;
 
-  // Fallback static data when no AI result
   const isAI = !!aiResult;
-  const overallScore = isAI ? aiResult.overallScore : 73;
   const summary = isAI ? aiResult.summary : "전반적으로 양호한 자세입니다. 흉추 후만과 좌측 어깨 비대칭에 주의가 필요합니다.";
-
-  const radarData = isAI
-    ? Object.entries(aiResult.categories || {}).map(([k, v]) => ({
-        subject: CAT_LABELS[k] || k,
-        score: v.score,
-      }))
-    : [
-        { subject: "척추", score: 72 }, { subject: "어깨", score: 58 },
-        { subject: "골반", score: 80 }, { subject: "무릎", score: 88 },
-        { subject: "발·족부", score: 65 },
-      ];
 
   const priorities = isAI ? aiResult.topPriorities : [];
   const coachingGuide = isAI ? aiResult.coachingGuide : [];
@@ -145,48 +99,26 @@ export default function AnalysisReport() {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-        {/* Score hero */}
+        {/* Summary hero (coaching-focused) */}
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-[#1A1A2E] rounded-2xl p-7 flex flex-col sm:flex-row items-center gap-7"
+          className="bg-[#1A1A2E] rounded-2xl p-7"
         >
-          <ScoreGauge score={overallScore} />
-          <div className="text-center sm:text-left">
-            <p className="text-white/50 text-sm mb-1">{T.overallScore[lang]}</p>
-            <h1 className="text-2xl font-extrabold text-white mb-2">
-              {overallScore >= 80 ? T.scoreExcellent[lang] : overallScore >= 60 ? T.scoreGood[lang] : T.scoreWarn[lang]}
-            </h1>
-            <p className="text-white/60 text-sm leading-relaxed max-w-md">{summary}</p>
-          </div>
+          <p className="text-white/50 text-sm mb-2">분석 요약</p>
+          <p className="text-white text-base font-bold leading-relaxed">{summary}</p>
         </motion.div>
 
-        {/* Uploaded image + radar */}
-        <div className="grid sm:grid-cols-2 gap-6">
-          {imageUrl && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-              className="bg-white rounded-2xl p-4 shadow-sm flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <Camera className="w-4 h-4 text-[#FF6B4A]" />
-                <h2 className="text-sm font-bold text-[#1A1A2E]">{T.analyzedImage[lang]}</h2>
-              </div>
-              <img src={imageUrl} alt="분석 이미지" className="w-full rounded-xl object-contain max-h-64 bg-gray-50" />
-            </motion.div>
-          )}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className={`bg-white rounded-2xl p-6 shadow-sm ${!imageUrl ? "sm:col-span-2" : ""}`}>
-            <div className="flex items-center gap-2 mb-2">
-              <BarChart2 className="w-4 h-4 text-[#FF6B4A]" />
-              <h2 className="text-sm font-bold text-[#1A1A2E]">{T.categoryBalance[lang]}</h2>
+        {/* Uploaded image */}
+        {imageUrl && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+            className="bg-white rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <Camera className="w-4 h-4 text-[#FF6B4A]" />
+              <h2 className="text-sm font-bold text-[#1A1A2E]">{T.analyzedImage[lang]}</h2>
             </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <RadarChart data={radarData}>
-                <PolarGrid stroke="#f0f0f0" />
-                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#6B7280" }} />
-                <Radar name="점수" dataKey="score" stroke="#FF6B4A" fill="#FF6B4A" fillOpacity={0.2} />
-              </RadarChart>
-            </ResponsiveContainer>
+            <img src={imageUrl} alt="분석 이미지" className="w-full rounded-xl object-contain max-h-64 bg-gray-50" />
           </motion.div>
-        </div>
+        )}
 
         {/* Category accordion */}
         {isAI && (
