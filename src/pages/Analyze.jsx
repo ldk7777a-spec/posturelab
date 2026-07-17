@@ -172,8 +172,7 @@ export default function Analyze() {
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
           <button onClick={() => {
-            if (step === "view") setStep("category");
-            else if (step === "capture") { setStep("view"); reset(); }
+            if (step === "capture") { setStep("category"); reset(); }
             else navigate("/");
           }} className="text-gray-400 hover:text-[#1A1A2E] transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -181,7 +180,7 @@ export default function Analyze() {
           <div>
             <h1 className="text-base font-bold text-[#1A1A2E]">{T.analyzeTitle[lang]}</h1>
             <p className="text-xs text-gray-400">
-              {step === "category" ? "종목 선택" : step === "view" ? T.viewSelect[lang] : T.photoInput[lang]}
+              {step === "category" ? "종목 선택" : T.photoInput[lang]}
             </p>
           </div>
           {step !== "category" && selectedCat && (
@@ -192,9 +191,9 @@ export default function Analyze() {
         </div>
         {/* Step indicator */}
         <div className="max-w-2xl mx-auto px-4 sm:px-6 pb-3 flex gap-2">
-          {["category", "view", "capture"].map((s, i) => (
+          {["category", "capture"].map((s, i) => (
             <div key={s} className={`h-1 flex-1 rounded-full transition-all ${
-              s === step ? "bg-[#FF6B4A]" : i < ["category","view","capture"].indexOf(step) ? "bg-orange-200" : "bg-gray-100"
+              s === step ? "bg-[#FF6B4A]" : i < ["category","capture"].indexOf(step) ? "bg-orange-200" : "bg-gray-100"
             }`} />
           ))}
         </div>
@@ -209,7 +208,7 @@ export default function Analyze() {
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">분석 종목 선택</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {CATEGORIES.map((cat) => (
-                  <button key={cat.key} onClick={() => { setCategory(cat.key); setStep("view"); }}
+                  <button key={cat.key} onClick={() => { setCategory(cat.key); setStep("capture"); }}
                     className="bg-white rounded-2xl p-4 text-left border-2 border-gray-100 hover:border-[#FF6B4A] hover:bg-orange-50 transition-all group">
                     <span className="text-3xl mb-2 block">{cat.emoji}</span>
                     <p className="text-sm font-bold text-[#1A1A2E] group-hover:text-[#FF6B4A]">{cat.label}</p>
@@ -220,30 +219,7 @@ export default function Analyze() {
             </motion.div>
           )}
 
-          {/* Step 2: View */}
-          {step === "view" && (
-            <motion.div key="view" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{T.viewSelect[lang]}</p>
-              <div className="grid grid-cols-2 gap-3">
-                {views.map((v) => (
-                  <button key={v.key} onClick={() => setView(v.key)}
-                    className={`rounded-2xl p-5 text-left border-2 transition-all ${
-                      view === v.key ? "border-[#FF6B4A] bg-orange-50" : "border-gray-100 bg-white hover:border-gray-200"
-                    }`}>
-                    <p className={`text-base font-bold mb-1 ${view === v.key ? "text-[#FF6B4A]" : "text-[#1A1A2E]"}`}>{v.label}</p>
-                    <p className="text-xs text-gray-400 leading-relaxed">{v.desc}</p>
-                  </button>
-                ))}
-              </div>
-              <button onClick={() => setStep("capture")}
-                className="w-full mt-4 bg-[#FF6B4A] hover:bg-[#e55a3a] text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-orange-200/40">
-                다음 — 사진/영상 입력
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </motion.div>
-          )}
-
-          {/* Step 3: Capture */}
+          {/* Step 2: Capture */}
           {step === "capture" && (
             <motion.div key="capture" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="space-y-5">

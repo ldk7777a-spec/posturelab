@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { ArrowLeft, FileText, Settings2 } from "lucide-react";
+import { ArrowLeft, FileText, Settings2, ChevronLeft, ChevronRight } from "lucide-react";
 import { drawSkeleton } from "@/lib/poseDraw";
 import { frameAngles } from "@/lib/biomechanics";
 import {
@@ -25,12 +25,7 @@ function MetricCard({ label, value, rating }) {
   const r = RATING_STYLES[rating] || RATING_STYLES.none;
   return (
     <div className={`bg-white rounded-lg border-2 p-3 ${r.border}`}>
-      <div className="flex items-center justify-between gap-1">
-        <p className="text-xs text-gray-500 truncate">{label}</p>
-        {r.label && (
-          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 ${r.badge}`}>{r.label}</span>
-        )}
-      </div>
+      <p className="text-xs text-gray-500 truncate">{label}</p>
       <p className="text-2xl font-bold text-gray-800 mt-1">{value == null ? "—" : `${value}°`}</p>
     </div>
   );
@@ -43,15 +38,8 @@ function SummaryCard({ label, s, hint, range, ratingOverride }) {
     s.min == null ? "데이터 없음" : `최소 ${s.min}° · 최대 ${s.max}° · 평균 ${s.avg}°`;
   return (
     <div className={`bg-white rounded-lg border-2 p-3 ${r.border}`}>
-      <div className="flex items-center justify-between gap-1">
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-gray-800 truncate">{label}</p>
-          {hint && <p className="text-[10px] text-gray-400 -mt-0.5">{hint}</p>}
-        </div>
-        {r.label && (
-          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 ${r.badge}`}>{r.label}</span>
-        )}
-      </div>
+      <p className="text-sm font-bold text-gray-800 truncate">{label}</p>
+      {hint && <p className="text-[10px] text-gray-400 -mt-0.5">{hint}</p>}
       <p className="text-xs text-gray-500 mt-1">{text}</p>
     </div>
   );
@@ -230,9 +218,29 @@ export default function FrameAnalysis() {
                   onChange={(e) => setIdx(Number(e.target.value))}
                   className="w-full accent-[#007BFF] cursor-pointer"
                 />
-                <p className="mt-1.5 text-xs text-gray-500">
-                  {safeIdx + 1} / {frames.length} 프레임{category ? ` · ${category}` : ""}
-                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-xs text-gray-500">
+                    {safeIdx + 1} / {frames.length} 프레임{category ? ` · ${category}` : ""}
+                  </p>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setIdx((i) => Math.max(0, i - 1))}
+                      disabled={safeIdx === 0}
+                      className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      aria-label="이전 프레임"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setIdx((i) => Math.min(frames.length - 1, i + 1))}
+                      disabled={safeIdx === frames.length - 1}
+                      className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      aria-label="다음 프레임"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
