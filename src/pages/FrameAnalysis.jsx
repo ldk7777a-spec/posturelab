@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { ArrowLeft, FileText, Settings2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, FileText, Settings2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { drawSkeleton } from "@/lib/poseDraw";
 import { frameAngles } from "@/lib/biomechanics";
 import {
@@ -47,16 +47,24 @@ function SummaryCard({ label, s, hint, range, ratingOverride }) {
 
 export default function FrameAnalysis() {
   const { state } = useLocation();
-  const frames = state?.frames || [];
+  const navFrames = state?.frames || null;       // mode A: fresh analysis (image dataURL + landmarks)
+  const videoUrl = state?.videoUrl || null;      // mode B: reopen from history
+  const framesData = state?.framesData || null;  // mode B: saved landmarks + times
+  const category = state?.category;
   const result = state?.result;
   const imageUrl = state?.imageUrl;
-  const category = state?.category;
+
+  const videoMode = !navFrames && !!videoUrl && !!framesData;
+  const initFrames = navFrames || framesData || [];
+  const [frames, setFrames] = useState(initFrames);
+  const [idx, setIdx] = useState(0);
+  const [loaded, setLoaded] = useState(0);
+  const [videoReady, setVideoReady] = useState(false);
+  const [ranges, setRanges] = useState(DEFAULT_RANGES);
 
   const canvasRef = useRef(null);
   const imgCache = useRef([]);
-  const [loaded, setLoaded] = useState(0);
-  const [idx, setIdx] = useState(0);
-  const [ranges, setRanges] = useState(DEFAULT_RANGES);
+  const videoElRef = useRef(null);
 
   // load coach ranges (falls back to defaults if unavailable)
   useEffect(() => {
@@ -78,9 +86,9 @@ export default function FrameAnalysis() {
       .catch(() => {});
   }, []);
 
-  // preload frame images
+  // Mode A: preload frame images
   useEffect(() => {
-    if (!frames.length) return;
+    if (videoMode || !frames.length) return;
     let cancelled = false;
     imgCache.current = new Array(frames.length).fill(null);
     setLoaded(0);
@@ -94,10 +102,11 @@ export default function FrameAnalysis() {
       im.src = f.image;
     });
     return () => { cancelled = true; };
-  }, [frames]);
+  }, [frames, videoMode]);
 
-  // draw current frame + skeleton
+  // Mode A: draw current frame + skeleton from preloaded image
   useEffect(() => {
+    if (videoMode) return;
     const im = imgCache.current[idx];
     const canvas = canvasRef.current;
     if (!im || !canvas) return;
@@ -106,11 +115,48 @@ export default function FrameAnalysis() {
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(im, 0, 0, canvas.width, canvas.height);
-    drawSkeleton(ctx, frames[idx].landmarks, canvas.width, canvas.height, {
+    drawSkeleton(ctx, frames[idx]?.landmarks, canvas.width, canvas.height, {
       nodeColor: "#FF1F1F",
       lineColor: "#1E40AF",
     });
-  }, [idx, loaded, frames]);
+  }, [idx, loaded, frames, videoMode]);
+
+  // Mode B: draw by seeking the stored original video and overlaying saved landmarks
+  useEffect(() => {
+    if (!videoMode) return;
+    const canvas = canvasRef.current;
+    const video = videoElRef.current;
+    if (!canvas || !video || !videoReady || !frames.length) return;
+
+    let cancelled = false;
+    const fd = frames[idx];
+    const render = () => {
+      if (cancelled) return;
+      const w = video.videoWidth || fd.width || 480;
+      const h = video.videoHeight || fd.height || 640;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, w, h);
+      try { ctx.drawImage(video, 0, 0, w, h); } catch {}
+      drawSkeleton(ctx, fd.landmarks, w, h, { nodeColor: "#FF1F1F", lineColor: "#1E40AF" });
+    };
+    const onSeeked = () => render();
+    video.addEventListener("seeked", onSeeked, { once: true });
+    try {
+      const dur = isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+      const t = fd.time != null ? fd.time : (frames.length > 1 ? (dur * idx) / (frames.length - 1) : 0);
+      video.currentTime = Math.max(0, Math.min(t, (dur || t) - 0.001));
+    } catch {
+      render();
+    }
+    const fallback = setTimeout(render, 120);
+    return () => {
+      cancelled = true;
+      clearTimeout(fallback);
+      video.removeEventListener("seeked", onSeeked);
+    };
+  }, [idx, frames, videoMode, videoReady]);
 
   if (!frames.length) {
     return (
@@ -162,12 +208,14 @@ export default function FrameAnalysis() {
     return { label: j.label, ...summarize(diffs) };
   });
 
+  const rebuilding = videoMode && !videoReady;
+
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-md lg:max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
-          <Link to="/analyze" className="text-gray-400 hover:text-[#1A1A2E] transition-colors">
+          <Link to={videoMode ? "/mypage" : "/analyze"} className="text-gray-400 hover:text-[#1A1A2E] transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
@@ -206,8 +254,18 @@ export default function FrameAnalysis() {
                 <canvas
                   ref={canvasRef}
                   className="w-full block rounded-xl bg-black"
-                  style={{ aspectRatio: frames[safeIdx] ? `${frames[safeIdx].width} / ${frames[safeIdx].height}` : "9 / 16" }}
+                  style={{
+                    aspectRatio: frames[safeIdx]
+                      ? `${frames[safeIdx].width || 9} / ${frames[safeIdx].height || 16}`
+                      : "9 / 16",
+                  }}
                 />
+                {rebuilding && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/40">
+                    <Loader2 className="w-7 h-7 text-white animate-spin" />
+                    <p className="text-xs text-white/80">원본 영상 로드 중...</p>
+                  </div>
+                )}
               </div>
               <div className="mt-4">
                 <input
@@ -243,6 +301,18 @@ export default function FrameAnalysis() {
                 </div>
               </div>
             </div>
+            {videoMode && (
+              <video
+                ref={videoElRef}
+                src={videoUrl}
+                muted
+                playsInline
+                preload="auto"
+                onLoadedData={() => setVideoReady(true)}
+                onError={() => setVideoReady(true)}
+                className="absolute w-px h-px opacity-0 pointer-events-none -z-10"
+              />
+            )}
           </div>
 
           {/* Metrics — 7 blocks: horizontal 2-col grid on desktop, stacked on mobile */}

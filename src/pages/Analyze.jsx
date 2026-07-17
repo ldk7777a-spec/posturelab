@@ -122,6 +122,23 @@ export default function Analyze() {
       setAnalyzing(false);
       setUploading(true);
       const { file_url } = await base44.integrations.Core.UploadFile({ file: uploadFile });
+      let video_url = null;
+      let framesData = null;
+      if (type === "video" && videoFrames) {
+        const vres = await base44.integrations.Core.UploadFile({ file });
+        video_url = vres.file_url;
+        framesData = videoFrames.map((f) => ({
+          time: f.time,
+          width: f.width,
+          height: f.height,
+          landmarks: f.landmarks.map((l) => ({
+            x: +Number(l.x).toFixed(3),
+            y: +Number(l.y).toFixed(3),
+            z: +Number(l.z || 0).toFixed(3),
+            visibility: +Number(l.visibility ?? 1).toFixed(2),
+          })),
+        }));
+      }
       setUploading(false);
 
       const result = analyzePostureLocal(landmarks, view, lang);
@@ -135,6 +152,8 @@ export default function Analyze() {
             category,
             view,
             image_url: file_url,
+            video_url,
+            frames: framesData,
             overall_score: result.overallScore,
             result,
           });
@@ -265,7 +284,7 @@ export default function Analyze() {
 
                     <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
                       <p className="text-xs text-emerald-700 font-medium">⚡ 기기 내 자세 AI 분석</p>
-                      <p className="text-xs text-emerald-500 mt-1">MediaPipe Pose가 브라우저에서 33개 관절을 직접 추적해 점수·코칭을 산출합니다. 영상은 서버로 전송되지 않고 기기에서 안전하게 분석됩니다.</p>
+                      <p className="text-xs text-emerald-500 mt-1">MediaPipe Pose가 브라우저에서 33개 관절을 직접 추적해 점수를 산출합니다. 동영상 분석 시 원본 영상과 프레임(관절 좌표) 데이터가 저장되어 히스토리에서 다시 볼 수 있습니다.</p>
                     </div>
                   </div>
 

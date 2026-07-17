@@ -13,6 +13,12 @@
     "image_url": {
       "type": "string"
     },
+    "video_url": {
+      "type": "string"
+    },
+    "frames": {
+      "type": "object"
+    },
     "overall_score": {
       "type": "number"
     },
