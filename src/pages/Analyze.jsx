@@ -153,7 +153,7 @@ export default function Analyze() {
             view,
             image_url: file_url,
             video_url,
-            frames: framesData,
+            frames: { list: framesData },
             overall_score: result.overallScore,
             result,
           });

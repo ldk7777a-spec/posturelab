@@ -16,6 +16,7 @@ import MyPage from './pages/MyPage';
 import Admin from './pages/Admin';
 import FrameAnalysis from './pages/FrameAnalysis';
 import RangeSettings from './pages/RangeSettings';
+import Compare from './pages/Compare';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -48,6 +49,7 @@ const AuthenticatedApp = () => {
       <Route path="/measurement/:key" element={<MeasurementDetail />} />
       <Route path="/report" element={<AnalysisReport />} />
       <Route path="/frame-analysis" element={<FrameAnalysis />} />
+      <Route path="/compare" element={<Compare />} />
       <Route path="/range-settings" element={<RangeSettings />} />
       <Route path="/booking" element={<Booking />} />
       <Route path="/analyze" element={<Analyze />} />

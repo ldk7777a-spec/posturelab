@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Users, BarChart2, Activity, Search, TrendingUp } from "lucide-react";
+import { ArrowLeft, Users, BarChart2, Activity, Search, TrendingUp, GitCompare, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -19,6 +19,8 @@ export default function Admin() {
   const [records, setRecords] = useState([]);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("users");
+  const [compareMode, setCompareMode] = useState(false);
+  const [selected, setSelected] = useState([]);
 
   useEffect(() => {
     const load = async () => {
@@ -73,6 +75,24 @@ export default function Admin() {
     if (!userRecordMap[r.user_id]) userRecordMap[r.user_id] = [];
     userRecordMap[r.user_id].push(r);
   });
+
+  const startCompare = () => {
+    if (selected.length !== 2) return;
+    const [aId, bId] = selected;
+    const a = records.find((r) => r.id === aId);
+    const b = records.find((r) => r.id === bId);
+    if (!a || !b) return;
+    const pack = (r) => ({
+      videoUrl: r.video_url,
+      frames: r.frames?.list || [],
+      category: r.category,
+      view: r.view,
+      result: r.result,
+      imageUrl: r.image_url,
+      userName: (users.find((u) => u.id === r.user_id) || {}).full_name || "",
+    });
+    navigate("/compare", { state: { a: pack(a), b: pack(b) } });
+  };
 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
@@ -215,18 +235,65 @@ export default function Admin() {
         {/* Records Table */}
         {activeTab === "records" && (
           <div className="space-y-3">
+            {/* Compare toolbar */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <button onClick={() => { setCompareMode((m) => !m); setSelected([]); }}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full border transition-colors ${
+                  compareMode ? "bg-[#FF6B4A] text-white border-[#FF6B4A]" : "bg-white text-gray-600 border-gray-200 hover:border-[#FF6B4A] hover:text-[#FF6B4A]"
+                }`}>
+                <GitCompare className="w-3.5 h-3.5" />
+                {compareMode ? "비교 취소" : "영상 비교"}
+              </button>
+              {compareMode && (
+                <>
+                  <span className="text-xs text-gray-500">비교할 영상 2개 선택 ({selected.length}/2)</span>
+                  <button onClick={startCompare} disabled={selected.length !== 2}
+                    className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full bg-[#1A1A2E] text-white disabled:opacity-40 transition-opacity">
+                    <Check className="w-3.5 h-3.5" />
+                    비교하기
+                  </button>
+                </>
+              )}
+            </div>
+
             {records.filter((r) =>
               !search || (SPORT_LABELS[r.category] || r.category || "").includes(search)
             ).map((r) => {
               const u = users.find((u) => u.id === r.user_id);
+              const hasVideo = !!(r.video_url && r.frames?.list?.length);
+              const isSel = selected.includes(r.id);
               return (
-                <div key={r.id} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4 cursor-pointer hover:shadow-sm transition-shadow"
-                  onClick={() => navigate("/report", { state: { result: r.result, imageUrl: r.image_url } })}>
+                <div key={r.id}
+                  className={`bg-white rounded-xl border p-4 flex items-center gap-4 transition-shadow cursor-pointer ${
+                    isSel ? "border-[#FF6B4A] ring-1 ring-[#FF6B4A] shadow-sm" : "border-gray-100 hover:shadow-sm"
+                  } ${compareMode && !hasVideo ? "opacity-50" : ""}`}
+                  onClick={() => {
+                    if (compareMode) {
+                      if (!hasVideo) return;
+                      setSelected((prev) =>
+                        prev.includes(r.id)
+                          ? prev.filter((id) => id !== r.id)
+                          : prev.length >= 2 ? [prev[1], r.id] : [...prev, r.id]
+                      );
+                    } else if (hasVideo) {
+                      navigate("/frame-analysis", { state: { videoUrl: r.video_url, framesData: r.frames.list, category: r.category, view: r.view, result: r.result, imageUrl: r.image_url } });
+                    } else {
+                      navigate("/report", { state: { result: r.result, imageUrl: r.image_url } });
+                    }
+                  }}>
                   {r.image_url && (
                     <img src={r.image_url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-[#1A1A2E]">{SPORT_LABELS[r.category] || r.category}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-[#1A1A2E]">{SPORT_LABELS[r.category] || r.category}</p>
+                      {hasVideo && (
+                        <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full">동영상</span>
+                      )}
+                      {compareMode && !hasVideo && (
+                        <span className="text-[10px] text-gray-400">영상 없음</span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-400 mt-0.5">
                       {u ? u.full_name : "알 수 없음"} · {new Date(r.created_date).toLocaleDateString("ko-KR")}
                     </p>
