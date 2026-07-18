@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { ArrowLeft, FileText, Settings2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, Settings2, ChevronLeft, ChevronRight, Loader2, Plus, Minus } from "lucide-react";
 import { drawSkeleton } from "@/lib/poseDraw";
 import { frameAngles } from "@/lib/biomechanics";
 import {
@@ -61,6 +61,7 @@ export default function FrameAnalysis() {
   const [loaded, setLoaded] = useState(0);
   const [videoReady, setVideoReady] = useState(false);
   const [ranges, setRanges] = useState(DEFAULT_RANGES);
+  const [zoom, setZoom] = useState(1);
 
   const canvasRef = useRef(null);
   const imgCache = useRef([]);
@@ -246,11 +247,11 @@ export default function FrameAnalysis() {
 
       {/* Desktop: frame left, metrics right (horizontal grid); Mobile: stacked */}
       <div className="max-w-md lg:max-w-5xl mx-auto px-4 py-6">
-        <div className="lg:grid lg:grid-cols-[360px_minmax(0,1fr)] lg:gap-6 lg:items-start">
+        <div className="lg:grid lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-6 lg:items-start">
           {/* Frame + slider */}
           <div className="lg:sticky lg:top-[88px]">
             <div className="bg-white rounded-2xl border border-gray-100 p-3">
-              <div className="relative mx-auto" style={{ maxWidth: 360 }}>
+              <div className="relative mx-auto" style={{ maxWidth: 360 * zoom }}>
                 <canvas
                   ref={canvasRef}
                   className="w-full block rounded-xl bg-black"
@@ -276,27 +277,46 @@ export default function FrameAnalysis() {
                   onChange={(e) => setIdx(Number(e.target.value))}
                   className="w-full accent-[#007BFF] cursor-pointer"
                 />
-                <div className="mt-2 flex items-center justify-between">
+                <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
                   <p className="text-xs text-gray-500">
                     {safeIdx + 1} / {frames.length} 프레임{category ? ` · ${category}` : ""}
                   </p>
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => setIdx((i) => Math.max(0, i - 1))}
-                      disabled={safeIdx === 0}
-                      className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                      aria-label="이전 프레임"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setIdx((i) => Math.min(frames.length - 1, i + 1))}
-                      disabled={safeIdx === frames.length - 1}
-                      className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                      aria-label="다음 프레임"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                  <div className="flex items-center gap-2 justify-end flex-wrap">
+                    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}
+                        className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
+                        aria-label="화면 축소"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-xs text-gray-500 px-1.5 tabular-nums">{Math.round(zoom * 100)}%</span>
+                      <button
+                        onClick={() => setZoom((z) => Math.min(2, +(z + 0.25).toFixed(2)))}
+                        className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
+                        aria-label="화면 확대"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => setIdx((i) => Math.max(0, i - 1))}
+                        disabled={safeIdx === 0}
+                        className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        aria-label="이전 프레임"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setIdx((i) => Math.min(frames.length - 1, i + 1))}
+                        disabled={safeIdx === frames.length - 1}
+                        className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        aria-label="다음 프레임"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
