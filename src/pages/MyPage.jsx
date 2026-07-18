@@ -211,7 +211,7 @@ export default function MyPage() {
                     )}
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {new Date(r.created_date).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
+                    {new Date(r.created_date).toLocaleString("ko-KR", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     {r.view && ` · ${r.view === "front" ? "정면" : "측면"}`}
                   </p>
                 </div>

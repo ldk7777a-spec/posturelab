@@ -1,6 +1,11 @@
-import React, { useState, useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Camera, Upload, X, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { useLang } from "@/lib/LanguageContext";
+import { getPoseLandmarker } from "@/lib/poseLandmarker";
+import { analyzeImage, loadImage } from "@/lib/poseAnalysis";
+import { analyzePostureLocal } from "@/lib/biomechanics";
+import { drawSkeleton } from "@/lib/poseDraw";
 
 const VIEWS = [
   { key: "front", label: "정면" },
@@ -8,6 +13,7 @@ const VIEWS = [
 ];
 
 export default function ImageUploader({ onAnalysisComplete, accentColor = "#FF6B4A" }) {
+  const { lang } = useLang();
   const [view, setView] = useState("front");
   const [preview, setPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -23,21 +29,37 @@ export default function ImageUploader({ onAnalysisComplete, accentColor = "#FF6B
     setPreview(previewUrl);
 
     try {
-      setUploading(true);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setUploading(false);
       setAnalyzing(true);
-      const response = await base44.functions.invoke("analyzePosture", { imageUrl: file_url, view });
-      setAnalyzing(false);
-      if (response.data?.success) {
-        onAnalysisComplete(response.data.result, file_url);
-      } else {
-        setError(response.data?.error || "분석 중 오류가 발생했습니다.");
-      }
-    } catch (e) {
       setUploading(false);
+      const landmarker = await getPoseLandmarker();
+      if (!landmarker) throw new Error("AI 자세 인식 모델을 불러오지 못했습니다.");
+
+      const img = await loadImage(file);
+      const res = analyzeImage(img, landmarker);
+      const landmarks = res.landmarks;
+      if (!landmarks) throw new Error("이미지에서 자세를 감지하지 못했습니다. 전신이 명확히 보이도록 다시 촬영해 주세요.");
+
+      // overlay skeleton onto the captured frame
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || 640;
+      canvas.height = img.naturalHeight || 480;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      drawSkeleton(ctx, landmarks, canvas.width, canvas.height);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+      const uploadFile = new File([blob], "analysis.jpg", { type: "image/jpeg" });
+
       setAnalyzing(false);
-      setError(e.message || "오류가 발생했습니다.");
+      setUploading(true);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: uploadFile });
+      setUploading(false);
+
+      const result = analyzePostureLocal(landmarks, view, lang);
+      onAnalysisComplete(result, file_url);
+    } catch (e) {
+      setAnalyzing(false);
+      setUploading(false);
+      setError(e?.message || "분석 중 오류가 발생했습니다.");
     }
   };
 

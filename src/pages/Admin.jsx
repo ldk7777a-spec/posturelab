@@ -281,7 +281,7 @@ export default function Admin() {
                       )}
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {u ? u.full_name : "알 수 없음"} · {new Date(r.created_date).toLocaleDateString("ko-KR")}
+                      {u ? u.full_name : "알 수 없음"} · {new Date(r.created_date).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
                 </div>
