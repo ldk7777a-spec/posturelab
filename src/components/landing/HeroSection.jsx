@@ -121,7 +121,7 @@ export default function HeroSection({ heroImage }) {
               </span>
             </div>
 
-            <h1 className="font-extrabold text-[#1A1A2E] leading-[1.08] tracking-tight mb-6 text-6xl sm:text-6xl lg:text-6xl">
+            <h1 className="font-extrabold text-[#1A1A2E] leading-[1.08] tracking-tight mb-6 text-7xl sm:text-7xl lg:text-7xl">
               {T.heroTitle1[lang]}{" "}
               <br className="hidden sm:block" />
               <span className="relative">
