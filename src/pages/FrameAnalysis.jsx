@@ -11,9 +11,6 @@ import AngleGraph from "@/components/analysis/AngleGraph";
 import ObpComparison from "@/components/analysis/ObpComparison";
 import { base44 } from "@/api/base44Client";
 
-const SEP_DESC =
-  "골반과 어깨가 회전하는 타이밍 차이를 나타내며, 값이 클수록 몸통 회전을 통해 힘을 효율적으로 전달하고 있다는 뜻입니다. 카메라 각도에 따라 오차가 있을 수 있는 추정치입니다.";
-
 function summarize(values) {
   if (!values.length) return { min: null, max: null, avg: null };
   const min = Math.min(...values);
@@ -357,90 +354,65 @@ export default function FrameAnalysis() {
 
           {/* Metrics — 7 blocks: horizontal 2-col grid on desktop, stacked on mobile */}
           <div className="mt-6 lg:mt-0 space-y-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
-            {/* 1. 현재 프레임 · 관절 가동각 */}
-            <div>
-              <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 관절 가동각</p>
-              <div className="grid grid-cols-2 gap-2">
-                {ANGLE_METRICS.map((j) => (
-                  <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
-                ))}
-              </div>
-            </div>
-
-            {/* 2. 현재 프레임 · 정렬 지표 */}
-            <div>
-              <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 정렬 지표</p>
-              <div className="grid grid-cols-2 gap-2">
-                {ALIGN_METRICS.map((j) => (
-                  <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
-                ))}
-              </div>
-            </div>
-
-            {/* 3. 영상 전체 요약 · 관절 가동각 */}
-            <div>
-              <p className="text-sm font-bold text-[#1A1A2E] mb-2">영상 전체 요약 · 관절 가동각</p>
-              <div className="grid grid-cols-2 gap-2">
-                {angleSummary.map((s) => (
-                  <SummaryCard key={s.key} label={s.label} s={s} range={ranges[s.key]} />
-                ))}
-              </div>
-            </div>
-
-            {/* 4. 영상 전체 요약 · 정렬 지표 */}
-            <div>
-              <p className="text-sm font-bold text-[#1A1A2E] mb-2">영상 전체 요약 · 정렬 지표</p>
-              <div className="grid grid-cols-2 gap-2">
-                {alignSummary.map((s) => (
-                  <SummaryCard key={s.key} label={s.label} s={s} hint={s.hint} range={ranges[s.key]} />
-                ))}
-              </div>
-            </div>
-
-            {/* 5. 견갑-골반 분리각 (현재값 + 전체 요약) */}
-            <div>
-              <p className="text-sm font-bold text-[#1A1A2E] mb-2">견갑-골반 분리각</p>
-              <div className="bg-white rounded-lg border-2 p-4">
-                <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-50">
-                  <span className="text-xs text-gray-500">현재 프레임</span>
-                  <span className="text-2xl font-bold text-[#FF6B4A]">
-                    {ang.separationAngle == null ? "—" : `${ang.separationAngle}°`}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <p className="text-[10px] text-gray-400">최소</p>
-                    <p className="text-base font-bold text-gray-700">{sepSummary.min == null ? "—" : `${sepSummary.min}°`}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">평균</p>
-                    <p className="text-base font-bold text-[#1A1A2E]">{sepSummary.avg == null ? "—" : `${sepSummary.avg}°`}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400">최대</p>
-                    <p className="text-base font-bold text-[#FF6B4A]">{sepSummary.max == null ? "—" : `${sepSummary.max}°`}</p>
-                    {sepSummary.maxFrame != null && <p className="text-[10px] text-gray-400">프레임 {sepSummary.maxFrame}</p>}
+            {obpMode === "none" && (
+              <>
+                {/* 1. 현재 프레임 · 관절 가동각 */}
+                <div>
+                  <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 관절 가동각</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ANGLE_METRICS.map((j) => (
+                      <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
+                    ))}
                   </div>
                 </div>
-                <p className="text-[10px] text-gray-400 leading-relaxed mt-3">{SEP_DESC}</p>
-              </div>
-            </div>
 
-            {/* 6. 좌우 비대칭 지표 */}
-            <div>
-              <p className="text-sm font-bold text-[#1A1A2E] mb-2">좌우 비대칭 지표 · |좌 − 우|</p>
-              {asymSummary.every((s) => s.avg == null) ? (
-                <div className="bg-white rounded-lg border-2 border-gray-200 p-3">
-                  <p className="text-xs text-gray-400">양측 관절을 모두 인식한 프레임이 필요합니다.</p>
+                {/* 2. 현재 프레임 · 정렬 지표 */}
+                <div>
+                  <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 정렬 지표</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ALIGN_METRICS.map((j) => (
+                      <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
+                    ))}
+                  </div>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-2">
-                  {asymSummary.map((s) => (
-                    <SummaryCard key={s.label} label={s.label} s={s} ratingOverride={asymRating(s.avg)} />
-                  ))}
+
+                {/* 3. 영상 전체 요약 · 관절 가동각 */}
+                <div>
+                  <p className="text-sm font-bold text-[#1A1A2E] mb-2">영상 전체 요약 · 관절 가동각</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {angleSummary.map((s) => (
+                      <SummaryCard key={s.key} label={s.label} s={s} range={ranges[s.key]} />
+                    ))}
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* 4. 영상 전체 요약 · 정렬 지표 */}
+                <div>
+                  <p className="text-sm font-bold text-[#1A1A2E] mb-2">영상 전체 요약 · 정렬 지표</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {alignSummary.map((s) => (
+                      <SummaryCard key={s.key} label={s.label} s={s} hint={s.hint} range={ranges[s.key]} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 6. 좌우 비대칭 지표 */}
+                <div>
+                  <p className="text-sm font-bold text-[#1A1A2E] mb-2">좌우 비대칭 지표 · |좌 − 우|</p>
+                  {asymSummary.every((s) => s.avg == null) ? (
+                    <div className="bg-white rounded-lg border-2 border-gray-200 p-3">
+                      <p className="text-xs text-gray-400">양측 관절을 모두 인식한 프레임이 필요합니다.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2">
+                      {asymSummary.map((s) => (
+                        <SummaryCard key={s.label} label={s.label} s={s} ratingOverride={asymRating(s.avg)} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* 7. 각도 변화 그래프 — 전폭 */}
             <div className="lg:col-span-2">
@@ -455,6 +427,7 @@ export default function FrameAnalysis() {
                   frames={frames}
                   currentIdx={safeIdx}
                   sepMax={sepSummary.max}
+                  onSeek={setIdx}
                 />
               </div>
             )}

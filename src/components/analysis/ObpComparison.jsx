@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { frameAngles } from "@/lib/biomechanics";
+import { detectFootPlant, detectLoad, detectFirstMove } from "@/lib/obpDetect";
 
 const LEVELS = ["고교", "대학", "독립리그", "마이너"];
 
@@ -9,16 +10,18 @@ const PITCH = {
 };
 
 const SWING = {
-  load: { 고교: { avg: 7.3, sd: 5.7 }, 대학: { avg: 5.4, sd: 4.8 }, 독립리그: { avg: 2.9, sd: 4.6 }, 마이너: { avg: 4.3, sd: 3.1 } },
-  stride: { 고교: { avg: 11.4, sd: 5.9 }, 대학: { avg: 7.4, sd: 6.9 }, 독립리그: { avg: 7.9, sd: 7.2 }, 마이너: { avg: 4.5, sd: 5.6 } },
-  footplant: { 고교: { avg: 10.8, sd: 7.9 }, 대학: { avg: 5.6, sd: 7.1 }, 독립리그: { avg: 1.9, sd: 4.4 }, 마이너: { avg: 6.5, sd: 6.1 } },
+  load: { 고교: { avg: 6.1, sd: 4.6 }, 대학: { avg: 5.0, sd: 4.0 }, 독립리그: { avg: 4.4, sd: 2.5 }, 마이너: { avg: 3.7, sd: 2.0 } },
+  firstmove: { 고교: { avg: 11.0, sd: 7.6 }, 대학: { avg: 7.2, sd: 5.5 }, 독립리그: { avg: 4.2, sd: 2.3 }, 마이너: { avg: 6.9, sd: 5.6 } },
+  footplant: { 고교: { avg: 22.0, sd: 7.4 }, 대학: { avg: 17.5, sd: 7.4 }, 독립리그: { avg: 19.4, sd: 3.7 }, 마이너: { avg: 18.9, sd: 5.1 } },
 };
 
 const SWING_TABS = [
-  { key: "load", label: "로드" },
-  { key: "stride", label: "스트라이드" },
-  { key: "footplant", label: "풋무브먼트" },
+  { key: "load", label: "로드", recLabel: "로드 자세" },
+  { key: "firstmove", label: "첫 움직임", recLabel: "첫 움직임" },
+  { key: "footplant", label: "발 착지", recLabel: "발 착지" },
 ];
+
+const LATERAL_HINT = "이 추천은 옆에서 촬영한 영상에서 더 정확합니다. 정면 촬영 영상은 직접 확인해서 조정해주세요.";
 
 const LIGHT = {
   green: { dot: "bg-emerald-500", border: "border-emerald-200", text: "text-emerald-700", label: "평균 범위 내" },
@@ -61,7 +64,7 @@ function LightBadge({ rating }) {
   );
 }
 
-function DesignateCard({ title, subtitle, refMap, level, setLevel, designated, onDesignate, currentIdx }) {
+function DesignateCard({ title, subtitle, refMap, level, setLevel, designated, onDesignate, currentIdx, recommend, onSeek, hint }) {
   const ref = refMap[level];
   const hasVal = designated && designated.value != null;
   const rating = hasVal ? ratingFor(designated.value, ref) : null;
@@ -71,10 +74,32 @@ function DesignateCard({ title, subtitle, refMap, level, setLevel, designated, o
       <div className="flex items-start justify-between gap-2 mb-3">
         <p className="text-sm font-bold text-[#1A1A2E] leading-tight">
           {title}
-          {subtitle && <span className="block text-[10px] font-medium text-gray-400">{subtitle}</span>}
+          {subtitle && <span className="block text-[10px] font-medium text-gray-400 mt-0.5">{subtitle}</span>}
         </p>
         <LevelSelect value={level} onChange={setLevel} />
       </div>
+
+      {recommend && recommend.idx != null && (
+        <div className="mb-3 rounded-lg bg-orange-50 border border-orange-100 p-2.5">
+          <p className="text-xs text-[#FF6B4A] font-semibold mb-2">이 프레임이 {recommend.label}인 것 같아요 (#{recommend.idx + 1}번)</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onSeek(recommend.idx)}
+              className="text-xs font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-3 py-1.5 bg-white hover:bg-orange-50 transition-colors"
+            >
+              프레임 이동
+            </button>
+            <button
+              onClick={() => onDesignate(recommend.idx)}
+              className="text-xs font-semibold text-white bg-[#FF6B4A] rounded-lg px-3 py-1.5 hover:bg-[#e55a3a] transition-colors"
+            >
+              이 프레임으로 지정
+            </button>
+          </div>
+        </div>
+      )}
+      {hint && <p className="text-[10px] text-gray-400 mb-3 leading-relaxed">{hint}</p>}
+
       {hasVal ? (
         <div className="flex items-end justify-between">
           <div>
@@ -89,7 +114,7 @@ function DesignateCard({ title, subtitle, refMap, level, setLevel, designated, o
             {designated ? "이 프레임에서 자세를 인식하지 못했습니다." : "프레임을 지정해주세요"}
           </p>
           <button
-            onClick={onDesignate}
+            onClick={() => onDesignate(currentIdx)}
             className={`text-xs font-semibold rounded-lg px-3 py-2 transition-colors ${designated ? "text-[#FF6B4A] border border-orange-200 hover:bg-orange-50" : "text-white bg-[#FF6B4A] hover:bg-[#e55a3a]"}`}
           >
             현재 프레임(#{currentIdx + 1}){designated ? "으로 다시 지정" : "로 지정"}
@@ -125,19 +150,43 @@ function MaxCard({ title, value, refMap, level, setLevel }) {
   );
 }
 
-export default function ObpComparison({ mode, frames, currentIdx, sepMax }) {
-  const [levels, setLevels] = useState({ foot: "고교", max: "고교", load: "고교", stride: "고교", footplant: "고교" });
-  const [designated, setDesignated] = useState({ foot: null, load: null, stride: null, footplant: null });
+export default function ObpComparison({ mode, frames, currentIdx, sepMax, onSeek }) {
+  const [levels, setLevels] = useState({ foot: "고교", max: "고교", load: "고교", firstmove: "고교", footplant: "고교" });
+  const [designated, setDesignated] = useState({ foot: null, load: null, firstmove: null, footplant: null });
   const [tab, setTab] = useState("load");
+  const [recommended, setRecommended] = useState({ foot: null, load: null, firstmove: null, footplant: null });
 
   const getSepAt = (i) => {
     const lm = frames[i]?.landmarks;
     if (!lm) return null;
     return Math.abs(frameAngles(lm).separationAngle);
   };
-  const designate = (key) =>
-    setDesignated((p) => ({ ...p, [key]: { idx: currentIdx, value: getSepAt(currentIdx) } }));
+  const designate = (key, idx) =>
+    setDesignated((p) => ({ ...p, [key]: { idx, value: getSepAt(idx) } }));
   const setLevel = (key) => (lv) => setLevels((p) => ({ ...p, [key]: lv }));
+
+  // compute auto-recommendations + pre-designate on first mount
+  useEffect(() => {
+    const footRec = detectFootPlant(frames);
+    const loadRec = detectLoad(frames);
+    const firstmoveRec = detectFirstMove(frames);
+    setRecommended({ foot: footRec, load: loadRec, firstmove: firstmoveRec, footplant: footRec });
+    setDesignated({
+      foot: footRec != null ? { idx: footRec, value: getSepAt(footRec) } : null,
+      load: loadRec != null ? { idx: loadRec, value: getSepAt(loadRec) } : null,
+      firstmove: firstmoveRec != null ? { idx: firstmoveRec, value: getSepAt(firstmoveRec) } : null,
+      footplant: footRec != null ? { idx: footRec, value: getSepAt(footRec) } : null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const recommendFor = (key, label) => {
+    const idx = recommended[key];
+    return idx != null ? { idx, label } : null;
+  };
+
+  const activeTab = SWING_TABS.find((t) => t.key === tab);
+  const showLateralHint = tab === "load" || tab === "firstmove";
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4">
@@ -145,7 +194,7 @@ export default function ObpComparison({ mode, frames, currentIdx, sepMax }) {
         <p className="text-sm font-bold text-[#1A1A2E]">OBP 참고 비교</p>
         <span className="text-[10px] font-semibold text-gray-400">{mode === "pitch" ? "투구" : "스윙"}</span>
       </div>
-      <p className="text-[11px] text-gray-400 mb-4">레벨별 평균±표준편차 범위 기준 신호등. 슬라이더로 해당 시점 프레임을 찾고 지정하세요.</p>
+      <p className="text-[11px] text-gray-400 mb-4">레벨별 평균±표준편차 범위 기준 신호등. 자동 추천 프레임이 지정되어 있으며, 슬라이더로 직접 바꿀 수 있습니다.</p>
 
       {mode === "pitch" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -156,8 +205,10 @@ export default function ObpComparison({ mode, frames, currentIdx, sepMax }) {
             level={levels.foot}
             setLevel={setLevel("foot")}
             designated={designated.foot}
-            onDesignate={() => designate("foot")}
+            onDesignate={(idx) => designate("foot", idx)}
             currentIdx={currentIdx}
+            recommend={recommendFor("foot", "발 착지")}
+            onSeek={onSeek}
           />
           <MaxCard
             title="견갑-골반 분리각 (최대값)"
@@ -182,13 +233,16 @@ export default function ObpComparison({ mode, frames, currentIdx, sepMax }) {
           </div>
           <DesignateCard
             title="몸통-골반 분리각"
-            subtitle={SWING_TABS.find((t) => t.key === tab)?.label}
+            subtitle={activeTab.label}
             refMap={SWING[tab]}
             level={levels[tab]}
             setLevel={setLevel(tab)}
             designated={designated[tab]}
-            onDesignate={() => designate(tab)}
+            onDesignate={(idx) => designate(tab, idx)}
             currentIdx={currentIdx}
+            recommend={recommendFor(tab, activeTab.recLabel)}
+            onSeek={onSeek}
+            hint={showLateralHint ? LATERAL_HINT : ""}
           />
         </div>
       )}
