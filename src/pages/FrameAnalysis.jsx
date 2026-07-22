@@ -354,28 +354,28 @@ export default function FrameAnalysis() {
 
           {/* Metrics — 7 blocks: horizontal 2-col grid on desktop, stacked on mobile */}
           <div className="mt-6 lg:mt-0 space-y-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
+            {/* 1. 현재 프레임 · 관절 가동각 */}
+            <div>
+              <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 관절 가동각</p>
+              <div className="grid grid-cols-2 gap-2">
+                {ANGLE_METRICS.map((j) => (
+                  <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
+                ))}
+              </div>
+            </div>
+
+            {/* 2. 현재 프레임 · 정렬 지표 */}
+            <div>
+              <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 정렬 지표</p>
+              <div className="grid grid-cols-2 gap-2">
+                {ALIGN_METRICS.map((j) => (
+                  <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
+                ))}
+              </div>
+            </div>
+
             {obpMode === "none" && (
               <>
-                {/* 1. 현재 프레임 · 관절 가동각 */}
-                <div>
-                  <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 관절 가동각</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {ANGLE_METRICS.map((j) => (
-                      <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
-                    ))}
-                  </div>
-                </div>
-
-                {/* 2. 현재 프레임 · 정렬 지표 */}
-                <div>
-                  <p className="text-sm font-bold text-[#1A1A2E] mb-2">현재 프레임 · 정렬 지표</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {ALIGN_METRICS.map((j) => (
-                      <MetricCard key={j.key} label={j.label} value={ang[j.key]} rating={getRating(ang[j.key], ranges[j.key])} />
-                    ))}
-                  </div>
-                </div>
-
                 {/* 3. 영상 전체 요약 · 관절 가동각 */}
                 <div>
                   <p className="text-sm font-bold text-[#1A1A2E] mb-2">영상 전체 요약 · 관절 가동각</p>

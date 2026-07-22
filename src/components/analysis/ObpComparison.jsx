@@ -2,17 +2,17 @@ import React, { useEffect, useState } from "react";
 import { frameAngles } from "@/lib/biomechanics";
 import { detectFootPlant, detectLoad, detectFirstMove } from "@/lib/obpDetect";
 
-const LEVELS = ["고교", "대학", "독립리그", "마이너"];
+const LEVELS = ["고교", "대학", "독립리그"];
 
 const PITCH = {
-  foot: { 고교: { avg: 29.8, sd: 5.9 }, 대학: { avg: 29.7, sd: 6.7 }, 독립리그: { avg: 26.9, sd: 6.9 }, 마이너: { avg: 36.7, sd: 4.6 } },
-  max: { 고교: { avg: 33.2, sd: 7.7 }, 대학: { avg: 32.1, sd: 6.4 }, 독립리그: { avg: 29.4, sd: 5.5 }, 마이너: { avg: 38.9, sd: 4.5 } },
+  foot: { 고교: { avg: 29.8, sd: 5.9 }, 대학: { avg: 29.7, sd: 6.7 }, 독립리그: { avg: 26.9, sd: 6.9 } },
+  max: { 고교: { avg: 33.2, sd: 7.7 }, 대학: { avg: 32.1, sd: 6.4 }, 독립리그: { avg: 29.4, sd: 5.5 } },
 };
 
 const SWING = {
-  load: { 고교: { avg: 6.1, sd: 4.6 }, 대학: { avg: 5.0, sd: 4.0 }, 독립리그: { avg: 4.4, sd: 2.5 }, 마이너: { avg: 3.7, sd: 2.0 } },
-  firstmove: { 고교: { avg: 11.0, sd: 7.6 }, 대학: { avg: 7.2, sd: 5.5 }, 독립리그: { avg: 4.2, sd: 2.3 }, 마이너: { avg: 6.9, sd: 5.6 } },
-  footplant: { 고교: { avg: 22.0, sd: 7.4 }, 대학: { avg: 17.5, sd: 7.4 }, 독립리그: { avg: 19.4, sd: 3.7 }, 마이너: { avg: 18.9, sd: 5.1 } },
+  load: { 고교: { avg: 6.1, sd: 4.6 }, 대학: { avg: 5.0, sd: 4.0 }, 독립리그: { avg: 4.4, sd: 2.5 } },
+  firstmove: { 고교: { avg: 11.0, sd: 7.6 }, 대학: { avg: 7.2, sd: 5.5 }, 독립리그: { avg: 4.2, sd: 2.3 } },
+  footplant: { 고교: { avg: 22.0, sd: 7.4 }, 대학: { avg: 17.5, sd: 7.4 }, 독립리그: { avg: 19.4, sd: 3.7 } },
 };
 
 const SWING_TABS = [
@@ -101,12 +101,20 @@ function DesignateCard({ title, subtitle, refMap, level, setLevel, designated, o
       {hint && <p className="text-[10px] text-gray-400 mb-3 leading-relaxed">{hint}</p>}
 
       {hasVal ? (
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-3xl font-bold text-[#1A1A2E]">{Math.round(designated.value * 10) / 10}°</p>
-            <p className="text-[11px] text-gray-400 mt-1">지정 프레임 #{designated.idx + 1} · {level} 평균 {ref.avg}° ±{ref.sd}</p>
+        <div>
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-3xl font-bold text-[#1A1A2E]">{Math.round(designated.value * 10) / 10}°</p>
+              <p className="text-[11px] text-gray-400 mt-1">지정 프레임 #{designated.idx + 1} · {level} 평균 {ref.avg}° ±{ref.sd}</p>
+            </div>
+            <LightBadge rating={rating} />
           </div>
-          <LightBadge rating={rating} />
+          <button
+            onClick={() => onDesignate(currentIdx)}
+            className="mt-3 text-xs font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-3 py-1.5 hover:bg-orange-50 transition-colors"
+          >
+            현재 프레임(#{currentIdx + 1})으로 다시 지정
+          </button>
         </div>
       ) : (
         <div className="py-2">
