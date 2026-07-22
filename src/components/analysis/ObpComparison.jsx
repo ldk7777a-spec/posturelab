@@ -90,7 +90,7 @@ function DesignateCard({ title, subtitle, refMap, level, setLevel, designated, o
               프레임 이동
             </button>
             <button
-              onClick={() => onDesignate(recommend.idx)}
+              onClick={() => onDesignate(currentIdx)}
               className="text-xs font-semibold text-white bg-[#FF6B4A] rounded-lg px-3 py-1.5 hover:bg-[#e55a3a] transition-colors"
             >
               이 프레임으로 지정
