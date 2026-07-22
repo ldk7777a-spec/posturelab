@@ -8,6 +8,7 @@ import {
   DEFAULT_RANGES, getRating, asymRating, RATING_STYLES,
 } from "@/lib/metricRanges";
 import AngleGraph from "@/components/analysis/AngleGraph";
+import ObpComparison from "@/components/analysis/ObpComparison";
 import { base44 } from "@/api/base44Client";
 
 const SEP_DESC =
@@ -62,6 +63,7 @@ export default function FrameAnalysis() {
   const [videoReady, setVideoReady] = useState(false);
   const [ranges, setRanges] = useState(DEFAULT_RANGES);
   const [zoom, setZoom] = useState(1);
+  const [obpMode, setObpMode] = useState("none");
 
   const canvasRef = useRef(null);
   const imgCache = useRef([]);
@@ -242,6 +244,24 @@ export default function FrameAnalysis() {
               </Link>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* OBP 모드 토글 */}
+      <div className="max-w-md lg:max-w-5xl mx-auto px-4 pt-4">
+        <div className="inline-flex items-center bg-white rounded-full border border-gray-200 p-1">
+          <button
+            onClick={() => setObpMode((m) => (m === "pitch" ? "none" : "pitch"))}
+            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${obpMode === "pitch" ? "bg-[#FF6B4A] text-white" : "text-gray-500 hover:text-[#1A1A2E]"}`}
+          >
+            투구
+          </button>
+          <button
+            onClick={() => setObpMode((m) => (m === "swing" ? "none" : "swing"))}
+            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${obpMode === "swing" ? "bg-[#FF6B4A] text-white" : "text-gray-500 hover:text-[#1A1A2E]"}`}
+          >
+            스윙
+          </button>
         </div>
       </div>
 
@@ -426,6 +446,18 @@ export default function FrameAnalysis() {
             <div className="lg:col-span-2">
               <AngleGraph frames={frames} selectedIdx={safeIdx} onSelectFrame={setIdx} />
             </div>
+
+            {/* 8. OBP 참고 비교 (투구/스윙 선택 시) */}
+            {obpMode !== "none" && (
+              <div className="lg:col-span-2">
+                <ObpComparison
+                  mode={obpMode}
+                  frames={frames}
+                  currentIdx={safeIdx}
+                  sepMax={sepSummary.max}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
