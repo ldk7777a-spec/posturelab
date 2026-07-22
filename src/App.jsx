@@ -17,6 +17,10 @@ import Admin from './pages/Admin';
 import FrameAnalysis from './pages/FrameAnalysis';
 import RangeSettings from './pages/RangeSettings';
 import Compare from './pages/Compare';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -36,15 +40,23 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
+      // Allow public auth pages (login / register / forgot / reset) to render
+      // without a session; everything else redirects to the platform login.
+      const publicAuthPaths = ['/login', '/register', '/forgot-password', '/reset-password'];
+      if (!publicAuthPaths.includes(window.location.pathname)) {
+        navigateToLogin();
+        return null;
+      }
     }
   }
 
   // Render the main app
   return (
     <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={<Home />} />
       <Route path="/measurement/:key" element={<MeasurementDetail />} />
       <Route path="/report" element={<AnalysisReport />} />
