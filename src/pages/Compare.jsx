@@ -7,6 +7,7 @@ import {
   ANGLE_METRICS, DEFAULT_RANGES, getRating, RATING_STYLES,
 } from "@/lib/metricRanges";
 import { base44 } from "@/api/base44Client";
+import CompareOverlay from "@/components/analysis/CompareOverlay";
 
 function MetricCard({ label, value, rating }) {
   const r = RATING_STYLES[rating] || RATING_STYLES.none;
@@ -151,6 +152,7 @@ export default function Compare() {
   const a = state?.a;
   const b = state?.b;
   const [ranges, setRanges] = useState(DEFAULT_RANGES);
+  const [mode, setMode] = useState("side");
 
   useEffect(() => {
     base44.entities.RangeSetting
@@ -189,16 +191,34 @@ export default function Compare() {
           </Link>
           <div>
             <h1 className="text-base font-bold text-[#1A1A2E]">영상 비교</h1>
-            <p className="text-xs text-gray-400">각 영상별 스크롤 · 관절 가동각 비교</p>
+            <p className="text-xs text-gray-400">같은 자세, 다른 영상. 프레임별로 비교해보세요.</p>
+          </div>
+          <div className="ml-auto inline-flex bg-gray-100 rounded-full p-1">
+            <button
+              onClick={() => setMode("side")}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${mode === "side" ? "bg-white text-[#1A1A2E] shadow-sm" : "text-gray-500 hover:text-[#1A1A2E]"}`}
+            >
+              나란히 보기
+            </button>
+            <button
+              onClick={() => setMode("overlay")}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${mode === "overlay" ? "bg-white text-[#1A1A2E] shadow-sm" : "text-gray-500 hover:text-[#1A1A2E]"}`}
+            >
+              겹쳐 보기
+            </button>
           </div>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-6">
-        <div className="flex flex-col md:flex-row gap-4 items-start">
-          <CompareSide rec={a} ranges={ranges} />
-          <CompareSide rec={b} ranges={ranges} />
-        </div>
+        {mode === "side" ? (
+          <div className="flex flex-col md:flex-row gap-4 items-start">
+            <CompareSide rec={a} ranges={ranges} />
+            <CompareSide rec={b} ranges={ranges} />
+          </div>
+        ) : (
+          <CompareOverlay a={a} b={b} />
+        )}
       </div>
     </div>
   );
