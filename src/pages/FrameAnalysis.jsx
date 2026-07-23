@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { ArrowLeft, FileText, Settings2, ChevronLeft, ChevronRight, Loader2, Plus, Minus } from "lucide-react";
+import { ArrowLeft, Settings2, ChevronLeft, ChevronRight, Loader2, Plus, Minus } from "lucide-react";
 import { drawSkeleton } from "@/lib/poseDraw";
 import { frameAngles } from "@/lib/biomechanics";
 import {
@@ -9,6 +9,7 @@ import {
 } from "@/lib/metricRanges";
 import AngleGraph from "@/components/analysis/AngleGraph";
 import ObpComparison from "@/components/analysis/ObpComparison";
+import MovementSummary from "@/components/analysis/MovementSummary";
 import { base44 } from "@/api/base44Client";
 
 function summarize(values) {
@@ -49,8 +50,6 @@ export default function FrameAnalysis() {
   const videoUrl = state?.videoUrl || null;      // mode B: reopen from history
   const framesData = state?.framesData || null;  // mode B: saved landmarks + times
   const category = state?.category;
-  const result = state?.result;
-  const imageUrl = state?.imageUrl;
 
   const videoMode = !navFrames && !!videoUrl && !!framesData;
   const initFrames = navFrames || framesData || [];
@@ -61,6 +60,7 @@ export default function FrameAnalysis() {
   const [ranges, setRanges] = useState(DEFAULT_RANGES);
   const [zoom, setZoom] = useState(1);
   const [obpMode, setObpMode] = useState("none");
+  const [contactFrame, setContactFrame] = useState(null);
 
   const canvasRef = useRef(null);
   const imgCache = useRef([]);
@@ -230,16 +230,6 @@ export default function FrameAnalysis() {
               <Settings2 className="w-3.5 h-3.5" />
               범위설정
             </Link>
-            {result && (
-              <Link
-                to="/report"
-                state={{ result, imageUrl }}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-[#FF6B4A] bg-orange-50 px-3 py-1.5 rounded-full hover:bg-orange-100 transition-colors"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                전체 리포트
-              </Link>
-            )}
           </div>
         </div>
       </div>
@@ -260,6 +250,16 @@ export default function FrameAnalysis() {
             스윙
           </button>
         </div>
+      </div>
+
+      {/* Movement report · step 1: event gallery + traffic-light metrics */}
+      <div className="max-w-md lg:max-w-5xl mx-auto px-4 pt-4">
+        <MovementSummary
+          frames={frames}
+          setIdx={setIdx}
+          contactFrame={contactFrame}
+          onSetContact={() => setContactFrame(safeIdx)}
+        />
       </div>
 
       {/* Desktop: frame left, metrics right (horizontal grid); Mobile: stacked */}

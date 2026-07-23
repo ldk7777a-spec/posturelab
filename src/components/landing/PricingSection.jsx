@@ -2,61 +2,19 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Zap } from "lucide-react";
 import { motion } from "framer-motion";
+import { useLang, T } from "@/lib/LanguageContext";
 
-const plans = [
-  {
-    name: "Free",
-    desc: "For individuals getting started",
-    monthly: 0,
-    yearly: 0,
-    features: [
-      "5 analyses per month",
-      "2D capture only",
-      "Basic joint tracking",
-      "1 athlete profile",
-      "Community support",
-    ],
-    cta: "Get Started",
-    popular: false,
-  },
-  {
-    name: "Pro",
-    desc: "For coaches and practitioners",
-    monthly: 29,
-    yearly: 24,
-    features: [
-      "Unlimited analyses",
-      "2D + 3D capture",
-      "Full biomechanics suite",
-      "25 athlete profiles",
-      "Progress tracking & reports",
-      "Priority support",
-      "Export to PDF / CSV",
-    ],
-    cta: "Start Free Trial",
-    popular: true,
-  },
-  {
-    name: "Team",
-    desc: "For clinics and organizations",
-    monthly: 79,
-    yearly: 66,
-    features: [
-      "Everything in Pro",
-      "Unlimited athlete profiles",
-      "Multi-coach collaboration",
-      "Enterprise-grade security",
-      "Custom branding",
-      "API access",
-      "Dedicated account manager",
-    ],
-    cta: "Contact Sales",
-    popular: false,
-  },
+const PRICES = [
+  { monthly: 0, yearly: 0, popular: false },
+  { monthly: 29, yearly: 24, popular: true },
+  { monthly: 79, yearly: 66, popular: false },
 ];
 
 export default function PricingSection() {
+  const { lang } = useLang();
   const [yearly, setYearly] = useState(false);
+  const p = T.pricing[lang];
+  const plans = p.plans.map((pl, i) => ({ ...pl, ...PRICES[i], price: yearly ? PRICES[i].yearly : PRICES[i].monthly }));
 
   return (
     <section id="pricing" className="py-20 lg:py-28">
@@ -69,18 +27,16 @@ export default function PricingSection() {
           className="text-center mb-14"
         >
           <span className="inline-block text-xs font-bold tracking-wider text-[#FF6B4A] uppercase mb-3">
-            Pricing
+            {p.eyebrow}
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1A1A2E] tracking-tight">
-            Plans for every level
+            {p.title}
           </h2>
-          <p className="mt-4 text-lg text-gray-500 max-w-xl mx-auto">
-            Start free, upgrade when you're ready. No surprise fees.
-          </p>
+          <p className="mt-4 text-lg text-gray-500 max-w-xl mx-auto">{p.desc}</p>
 
           {/* Toggle */}
           <div className="flex items-center justify-center gap-3 mt-8">
-            <span className={`text-sm font-medium ${!yearly ? "text-[#1A1A2E]" : "text-gray-400"}`}>Monthly</span>
+            <span className={`text-sm font-medium ${!yearly ? "text-[#1A1A2E]" : "text-gray-400"}`}>{p.monthly}</span>
             <button
               onClick={() => setYearly(!yearly)}
               className={`relative w-12 h-7 rounded-full transition-colors duration-300 ${
@@ -94,9 +50,9 @@ export default function PricingSection() {
               />
             </button>
             <span className={`text-sm font-medium ${yearly ? "text-[#1A1A2E]" : "text-gray-400"}`}>
-              Yearly
+              {p.yearly}
               <span className="ml-1.5 text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">
-                Save 17%
+                {p.save}
               </span>
             </span>
           </div>
@@ -119,7 +75,7 @@ export default function PricingSection() {
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="inline-flex items-center gap-1 bg-[#FF6B4A] text-white text-xs font-bold px-3 py-1 rounded-full">
-                    <Zap className="w-3 h-3" /> Most Popular
+                    <Zap className="w-3 h-3" /> {p.popular}
                   </span>
                 </div>
               )}
@@ -128,10 +84,8 @@ export default function PricingSection() {
               <p className="text-sm text-gray-400 mt-1">{plan.desc}</p>
 
               <div className="mt-5 mb-6">
-                <span className="text-4xl font-extrabold text-[#1A1A2E]">
-                  ${yearly ? plan.yearly : plan.monthly}
-                </span>
-                <span className="text-gray-400 text-sm ml-1">/ month</span>
+                <span className="text-4xl font-extrabold text-[#1A1A2E]">${plan.price}</span>
+                <span className="text-gray-400 text-sm ml-1">{p.perMonth}</span>
               </div>
 
               <Button

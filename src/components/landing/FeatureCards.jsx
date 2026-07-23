@@ -1,26 +1,16 @@
 import React from "react";
 import { Camera, Cpu, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
-
-const features = [
-  {
-    icon: Camera,
-    title: "Capture with Confidence",
-    description: "Record in 2D or 3D with any device. High-frame-rate capture ensures no detail is missed.",
-  },
-  {
-    icon: Cpu,
-    title: "AI-Powered Analysis",
-    description: "Our AI detects and tracks key biomechanics to surface actionable insights instantly.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Track Progress Over Time",
-    description: "Monitor improvements, compare sessions, and build better programs with data that matters.",
-  },
-];
+import { useLang, T } from "@/lib/LanguageContext";
 
 export default function FeatureCards() {
+  const { lang } = useLang();
+  const features = [
+    { icon: Camera, title: T.featCapture[lang], description: T.featCaptureDesc[lang] },
+    { icon: Cpu, title: T.featAI[lang], description: T.featAIDesc[lang] },
+    { icon: TrendingUp, title: T.featTrack[lang], description: T.featTrackDesc[lang] },
+  ];
+
   return (
     <section className="py-20 lg:py-28 border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

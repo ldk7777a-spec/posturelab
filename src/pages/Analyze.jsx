@@ -9,20 +9,11 @@ import { analyzeVideo, analyzeImage, pickBestFrame, loadImage, loadImageEl } fro
 import { analyzePostureLocal } from "@/lib/biomechanics";
 import { drawSkeleton } from "@/lib/poseDraw";
 
-const CATEGORIES = [
-  { key: "general",  label: "일반 자세",  emoji: "🧍", desc: "기본 정적 자세 분석" },
-  { key: "soccer",   label: "축구",       emoji: "⚽", desc: "킥 자세, 달리기 폼" },
-  { key: "baseball", label: "야구",       emoji: "⚾", desc: "타격, 투구, 수비 자세" },
-  { key: "running",  label: "달리기",     emoji: "🏃", desc: "보행 주기, 발 착지" },
-  { key: "walking",  label: "걷기",       emoji: "🚶", desc: "보행 자세, 무게 중심" },
-  { key: "pilates",  label: "필라테스",   emoji: "🧘", desc: "코어 정렬, 호흡 패턴" },
-  { key: "yoga",     label: "요가",       emoji: "🙏", desc: "관절 유연성, 균형" },
-  { key: "golf",     label: "골프",       emoji: "⛳", desc: "스윙 자세, 허리 회전" },
-  { key: "swimming", label: "수영",       emoji: "🏊", desc: "스트로크 자세, 체간" },
-  { key: "cycling",  label: "사이클",     emoji: "🚴", desc: "안장 자세, 무릎 추적" },
-  { key: "basketball", label: "농구",     emoji: "🏀", desc: "점프 착지, 수비 자세" },
-  { key: "tennis",   label: "테니스",     emoji: "🎾", desc: "서브, 스윙 메카닉" },
-];
+const EMOJI = { general: "🧍", soccer: "⚽", baseball: "⚾", running: "🏃", walking: "🚶", pilates: "🧘", yoga: "🙏", golf: "⛳", swimming: "🏊", cycling: "🚴", basketball: "🏀", tennis: "🎾" };
+
+function categoriesFor(lang) {
+  return T.analyzeCats[lang].map((c) => ({ key: c.key, emoji: EMOJI[c.key], label: c.label, desc: c.desc }));
+}
 
 const VIEWS = (lang) => [
   { key: "front", label: T.frontView[lang], desc: T.frontDesc[lang] },
@@ -183,7 +174,7 @@ export default function Analyze() {
 
   const isLoading = uploading || analyzing;
   const views = VIEWS(lang);
-  const selectedCat = CATEGORIES.find((c) => c.key === category);
+  const selectedCat = categoriesFor(lang).find((c) => c.key === category);
 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
@@ -199,7 +190,7 @@ export default function Analyze() {
           <div>
             <h1 className="text-base font-bold text-[#1A1A2E]">{T.analyzeTitle[lang]}</h1>
             <p className="text-xs text-gray-400">
-              {step === "category" ? "종목 선택" : T.photoInput[lang]}
+              {step === "category" ? T.stepSelect[lang] : T.photoInput[lang]}
             </p>
           </div>
           {step !== "category" && selectedCat && (
@@ -224,9 +215,9 @@ export default function Analyze() {
         <AnimatePresence mode="wait">
           {step === "category" && (
             <motion.div key="cat" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">분석 종목 선택</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{T.catSelect[lang]}</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {CATEGORIES.map((cat) => (
+                {categoriesFor(lang).map((cat) => (
                   <button key={cat.key} onClick={() => { setCategory(cat.key); setStep("capture"); }}
                     className="bg-white rounded-2xl p-4 text-left border-2 border-gray-100 hover:border-[#FF6B4A] hover:bg-orange-50 transition-all group">
                     <span className="text-3xl mb-2 block">{cat.emoji}</span>
@@ -276,15 +267,15 @@ export default function Analyze() {
                           <Video className="w-6 h-6 text-purple-500 group-hover:text-white" />
                         </div>
                         <div className="text-center">
-                          <p className="text-sm font-bold text-[#1A1A2E]">동영상 업로드</p>
-                          <p className="text-xs text-gray-400 mt-0.5">동작 흐름 분석</p>
+                          <p className="text-sm font-bold text-[#1A1A2E]">{T.videoUpload[lang]}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{T.videoUploadDesc[lang]}</p>
                         </div>
                       </button>
                     </div>
 
                     <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
-                      <p className="text-xs text-emerald-700 font-medium">⚡ 기기 내 자세 AI 분석</p>
-                      <p className="text-xs text-emerald-500 mt-1">MediaPipe Pose가 브라우저에서 33개 관절을 직접 추적해 점수를 산출합니다. 동영상 분석 시 원본 영상과 프레임(관절 좌표) 데이터가 저장되어 히스토리에서 다시 볼 수 있습니다.</p>
+                      <p className="text-xs text-emerald-700 font-medium">⚡ {T.localAiTitle[lang]}</p>
+                      <p className="text-xs text-emerald-500 mt-1">{T.localAiDesc[lang]}</p>
                     </div>
                   </div>
 
@@ -324,10 +315,10 @@ export default function Analyze() {
                         </div>
                         <div className="text-center">
                           <p className="text-white font-bold text-base">
-                            {uploading ? "결과 저장 중..." : previewType === "video" ? "관절 추출 중..." : T.analyzing[lang]}
+                            {uploading ? T.savingResult[lang] : previewType === "video" ? T.extractingJoints[lang] : T.analyzing[lang]}
                           </p>
                           <p className="text-white/50 text-xs mt-1">
-                            {uploading ? "잠시만 기다려 주세요" : "MediaPipe가 기기에서 자세를 분석하고 있어요"}
+                            {uploading ? T.pleaseWait[lang] : T.mediapipeWorking[lang]}
                           </p>
                         </div>
                       </div>

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { useLang } from "@/lib/LanguageContext";
+import { useLang, T } from "@/lib/LanguageContext";
 
 const BEFORE_IMAGE = "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/4e36975e3_Posture_analysis_BEFORE_image_-_A_Caucasian_woman_-1782659303218.png";
 const AFTER_IMAGE = "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/7f309043d_Posture_analysis_AFTER_image_-_Transform_this_imag-1782659305647.png";
@@ -37,15 +37,13 @@ export default function PostureCompare() {
           className="text-center mb-12"
         >
           <span className="inline-block text-xs font-bold tracking-wider text-[#FF6B4A] uppercase mb-3">
-            Before & After
+            {T.beforeAfter[lang]}
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            {lang === "ko" ? "PostureLab이 만드는 차이" : "See the difference PostureLab makes"}
+            {T.compareTitle[lang]}
           </h2>
           <p className="mt-3 text-gray-400 max-w-xl mx-auto">
-            {lang === "ko"
-              ? "슬라이더를 드래그해 교정 전·후 자세를 비교하세요."
-              : "Drag the slider to compare posture before and after guided correction."}
+            {T.compareDesc[lang]}
           </p>
         </motion.div>
 
@@ -121,18 +119,18 @@ export default function PostureCompare() {
 
             {/* Labels */}
             <div className="absolute bottom-4 left-0 right-0 flex justify-between px-5 z-20 pointer-events-none">
-              <p className="text-white/80 text-xs font-medium">굽은 어깨 · 전방 머리 자세</p>
-              <p className="text-white/80 text-xs font-medium">중립 척추 · 균형 잡힌 골반</p>
+              <p className="text-white/80 text-xs font-medium">{T.compareBeforeLabel[lang]}</p>
+              <p className="text-white/80 text-xs font-medium">{T.compareAfterLabel[lang]}</p>
             </div>
           </div>
 
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-4 mt-6">
             {[
-              { label: lang === "ko" ? "척추 개선" : "Spine Improvement", value: "+34%", color: "text-emerald-400" },
-              { label: lang === "ko" ? "어깨 균형" : "Shoulder Balance", value: "+28%", color: "text-emerald-400" },
-              { label: lang === "ko" ? "달성 기간" : "Sessions to Achieve", value: lang === "ko" ? "6주" : "6 weeks", color: "text-[#FF6B4A]" },
-            ].map((s) => (
+               { label: T.compareSpineImp[lang], value: "+34%", color: "text-emerald-400" },
+               { label: T.compareShoulBal[lang], value: "+28%", color: "text-emerald-400" },
+               { label: T.compareSessions[lang], value: T.weeks[lang], color: "text-[#FF6B4A]" },
+             ].map((s) => (
               <div key={s.label} className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
                 <p className={`text-2xl font-extrabold ${s.color}`}>{s.value}</p>
                 <p className="text-xs text-gray-400 mt-1">{s.label}</p>
