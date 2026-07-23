@@ -16,9 +16,9 @@ const SWING = {
 };
 
 const SWING_TABS = [
-  { key: "load", label: "로드", recLabel: "로드 자세" },
-  { key: "firstmove", label: "첫 움직임", recLabel: "첫 움직임" },
-  { key: "footplant", label: "발 착지", recLabel: "발 착지" },
+  { key: "load", label: "로드", eventLabel: "로드 자세" },
+  { key: "firstmove", label: "첫 움직임", eventLabel: "첫 움직임" },
+  { key: "footplant", label: "발 착지", eventLabel: "발 착지" },
   { key: "contact", label: "컨택" },
 ];
 
@@ -65,11 +65,12 @@ function LightBadge({ rating }) {
   );
 }
 
+// Pitch mode card: 7 thumbnails (center ±3) for final selection
 function ThumbRow({ frames, center, selected, onSelect, radius = 3 }) {
   if (center == null) {
     return (
       <p className="text-xs text-gray-400 py-2 leading-relaxed">
-        지정한 구간 안에서 자동 감지하지 못했습니다. 슬라이더로 직접 이동한 뒤 아래 “현재 프레임으로 지정” 버튼을 눌러주세요.
+        자동 감지하지 못했습니다. 슬라이더로 직접 이동한 뒤 아래 “현재 프레임으로 지정” 버튼을 눌러주세요.
       </p>
     );
   }
@@ -114,7 +115,7 @@ function ThumbRow({ frames, center, selected, onSelect, radius = 3 }) {
   );
 }
 
-function EventCard({ title, subtitle, refMap, level, setLevel, frames, center, selected, onSelectThumb, onSeek, currentIdx, onDesignateCurrent, hint, ready }) {
+function PitchEventCard({ title, subtitle, refMap, level, setLevel, frames, center, selected, onSelectThumb, onSeek, currentIdx }) {
   const ref = refMap[level];
   const val =
     selected != null && frames[selected] && frames[selected].landmarks
@@ -132,52 +133,44 @@ function EventCard({ title, subtitle, refMap, level, setLevel, frames, center, s
         <LevelSelect value={level} onChange={setLevel} />
       </div>
 
-      {!ready ? (
-        <p className="text-xs text-[#FF6B4A] font-medium py-2 leading-relaxed">
-          먼저 위에서 스윙 시작 / 컨택 프레임을 지정해주세요.
-        </p>
-      ) : (
-        <>
-          <ThumbRow frames={frames} center={center} selected={selected} onSelect={onSelectThumb} />
-          {hint && <p className="text-[10px] text-gray-400 mt-2 mb-2 leading-relaxed">{hint}</p>}
-          {val != null ? (
-            <div className="mt-3">
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-3xl font-bold text-[#1A1A2E]">{Math.round(val * 10) / 10}°</p>
-                  <p className="text-[11px] text-gray-400 mt-1">
-                    선택 프레임 #{selected + 1} · {level} 평균 {ref.avg}° ±{ref.sd}
-                  </p>
-                </div>
-                <LightBadge rating={rating} />
-              </div>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <button
-                  onClick={() => onSeek(selected)}
-                  className="text-xs font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-3 py-1.5 bg-white hover:bg-orange-50 transition-colors"
-                >
-                  선택 프레임으로 이동
-                </button>
-                <button
-                  onClick={onDesignateCurrent}
-                  className="text-xs font-semibold text-white bg-[#FF6B4A] rounded-lg px-3 py-1.5 hover:bg-[#e55a3a] transition-colors"
-                >
-                  현재 프레임(#{currentIdx + 1})으로 지정
-                </button>
-              </div>
+      <ThumbRow frames={frames} center={center} selected={selected} onSelect={onSelectThumb} />
+
+      {val != null ? (
+        <div className="mt-3">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-3xl font-bold text-[#1A1A2E]">{Math.round(val * 10) / 10}°</p>
+              <p className="text-[11px] text-gray-400 mt-1">
+                선택 프레임 #{selected + 1} · {level} 평균 {ref.avg}° ±{ref.sd}
+              </p>
             </div>
-          ) : (
-            <p className="text-xs text-gray-400 mt-2">
-              위 썸네일에서 프레임을 클릭하거나, 현재 프레임으로 직접 지정하세요.
-            </p>
-          )}
-        </>
+            <LightBadge rating={rating} />
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button
+              onClick={() => onSeek(selected)}
+              className="text-xs font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-3 py-1.5 bg-white hover:bg-orange-50 transition-colors"
+            >
+              선택 프레임으로 이동
+            </button>
+            <button
+              onClick={() => onSelectThumb(currentIdx)}
+              className="text-xs font-semibold text-white bg-[#FF6B4A] rounded-lg px-3 py-1.5 hover:bg-[#e55a3a] transition-colors"
+            >
+              현재 프레임(#{currentIdx + 1})으로 지정
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400 mt-2">
+          위 썸네일에서 프레임을 클릭하거나, 현재 프레임으로 직접 지정하세요.
+        </p>
       )}
     </div>
   );
 }
 
-function MaxCard({ title, value, refMap, level, setLevel, ready }) {
+function MaxCard({ title, value, refMap, level, setLevel }) {
   const ref = refMap[level];
   const rating = ratingFor(value, ref);
   const r = rating ? LIGHT[rating] : null;
@@ -187,19 +180,100 @@ function MaxCard({ title, value, refMap, level, setLevel, ready }) {
         <p className="text-sm font-bold text-[#1A1A2E] leading-tight">{title}</p>
         <LevelSelect value={level} onChange={setLevel} />
       </div>
-      {!ready ? (
-        <p className="text-xs text-gray-400 py-2">스윙 시작 / 컨택 지정 후 자동 계산됩니다.</p>
-      ) : value == null ? (
-        <p className="text-sm text-gray-400">구간 내 데이터가 없습니다.</p>
+      {value == null ? (
+        <p className="text-sm text-gray-400">영상 내 데이터가 없습니다.</p>
       ) : (
         <div className="flex items-end justify-between">
           <div>
             <p className="text-3xl font-bold text-[#1A1A2E]">{Math.round(value * 10) / 10}°</p>
-            <p className="text-[11px] text-gray-400 mt-1">지정 구간 내 최대값(자동) · {level} 평균 {ref.avg}° ±{ref.sd}</p>
+            <p className="text-[11px] text-gray-400 mt-1">영상 전체 최대값(자동) · {level} 평균 {ref.avg}° ±{ref.sd}</p>
           </div>
           <LightBadge rating={rating} />
         </div>
       )}
+    </div>
+  );
+}
+
+// Swing mode card: auto recommendation + slider override + value
+function RecommendCard({ title, eventLabel, refMap, level, setLevel, frames, detected, selected, onSelect, onSeek, currentIdx, hint }) {
+  const n = frames.length;
+  const ref = refMap[level];
+  const cur = selected != null ? selected : detected;
+  const valid = cur != null && cur >= 0 && cur < n;
+  const val = valid && frames[cur] && frames[cur].landmarks
+    ? Math.abs(frameAngles(frames[cur].landmarks).separationAngle)
+    : null;
+  const rating = val != null ? ratingFor(val, ref) : null;
+  const r = rating ? LIGHT[rating] : null;
+  return (
+    <div className={`bg-white rounded-lg border-2 p-4 ${r ? r.border : "border-gray-200"}`}>
+      {hint && <p className="text-[11px] text-gray-400 mb-3 leading-relaxed">{hint}</p>}
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <p className="text-sm font-bold text-[#1A1A2E] leading-tight">{title}</p>
+        <LevelSelect value={level} onChange={setLevel} />
+      </div>
+
+      {detected != null ? (
+        <div className="flex items-center gap-2 mb-3 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2">
+          <span className="text-xs text-[#1A1A2E] font-medium">이 프레임이 {eventLabel}인 것 같아요</span>
+          <span className="text-xs font-bold text-[#FF6B4A]">#{detected + 1}번</span>
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400 mb-3 leading-relaxed">
+          자동 감지하지 못했습니다. 아래 슬라이더로 직접 지정하세요.
+        </p>
+      )}
+
+      <div className="mb-3">
+        <input
+          type="range"
+          min={0}
+          max={Math.max(0, n - 1)}
+          value={valid ? cur : 0}
+          onChange={(e) => onSelect(Number(e.target.value))}
+          className="w-full accent-[#FF6B4A] cursor-pointer"
+        />
+        <p className="text-xs text-gray-500 mt-1">선택 프레임: #{valid ? cur + 1 : "—"} / {n}</p>
+      </div>
+
+      {val != null ? (
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-3xl font-bold text-[#1A1A2E]">{Math.round(val * 10) / 10}°</p>
+            <p className="text-[11px] text-gray-400 mt-1">
+              {level} 평균 {ref.avg}° ±{ref.sd}
+            </p>
+          </div>
+          <LightBadge rating={rating} />
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400">선택한 프레임에 분리각 데이터가 없습니다.</p>
+      )}
+
+      <div className="flex flex-wrap gap-2 mt-3">
+        <button
+          onClick={() => valid && onSeek(cur)}
+          disabled={!valid}
+          className="text-xs font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-3 py-1.5 bg-white hover:bg-orange-50 disabled:opacity-40 transition-colors"
+        >
+          프레임 이동
+        </button>
+        {detected != null && (
+          <button
+            onClick={() => onSelect(detected)}
+            className="text-xs font-semibold text-white bg-[#FF6B4A] rounded-lg px-3 py-1.5 hover:bg-[#e55a3a] transition-colors"
+          >
+            이 프레임으로 지정
+          </button>
+        )}
+        <button
+          onClick={() => onSelect(currentIdx)}
+          className="text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:bg-gray-50 transition-colors"
+        >
+          현재 프레임(#{currentIdx + 1})으로 지정
+        </button>
+      </div>
     </div>
   );
 }
@@ -253,113 +327,47 @@ function ContactCard({ contactFrame, currentIdx, onSetContact, onSeek, frames })
   );
 }
 
-function WindowControl({ frames, swingStart, setSwingStart, contactFrame, onSetContact, currentIdx, onSeek }) {
-  const ready = swingStart != null && contactFrame != null && contactFrame > swingStart;
-  return (
-    <div className={`rounded-lg p-3 mb-3 border ${ready ? "bg-gray-50 border-gray-200" : "bg-orange-50 border-orange-100"}`}>
-      <p className="text-xs font-bold text-[#FF6B4A] mb-2">1단계 · 스윙 시작 / 컨택 프레임 지정</p>
-      <div className="grid sm:grid-cols-2 gap-3">
-        <div className="bg-white rounded-lg border border-gray-200 p-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-gray-700">스윙 시작</span>
-            <span className="text-xs font-bold text-[#1A1A2E]">{swingStart != null ? `#${swingStart + 1}` : "미지정"}</span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={Math.max(0, frames.length - 1)}
-            value={swingStart != null ? swingStart : 0}
-            onChange={(e) => setSwingStart(Number(e.target.value))}
-            className="w-full accent-[#FF6B4A] cursor-pointer"
-          />
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => swingStart != null && onSeek(swingStart)}
-              disabled={swingStart == null}
-              className="text-[11px] font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-2.5 py-1 bg-white hover:bg-orange-50 disabled:opacity-40 transition-colors"
-            >
-              이동
-            </button>
-            <button
-              onClick={() => setSwingStart(currentIdx)}
-              className="text-[11px] font-semibold text-white bg-[#FF6B4A] rounded-lg px-2.5 py-1 hover:bg-[#e55a3a] transition-colors"
-            >
-              현재 프레임(#{currentIdx + 1}) 지정
-            </button>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-gray-700">컨택</span>
-            <span className="text-xs font-bold text-[#1A1A2E]">{contactFrame != null ? `#${contactFrame + 1}` : "미지정"}</span>
-          </div>
-          <p className="text-[10px] text-gray-400 mb-2 leading-relaxed">배트-공 접촉 시점을 정하면 분석 구간이 확정됩니다.</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => contactFrame != null && onSeek(contactFrame)}
-              disabled={contactFrame == null}
-              className="text-[11px] font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-2.5 py-1 bg-white hover:bg-orange-50 disabled:opacity-40 transition-colors"
-            >
-              이동
-            </button>
-            <button
-              onClick={() => onSetContact(currentIdx)}
-              className="text-[11px] font-semibold text-white bg-[#FF6B4A] rounded-lg px-2.5 py-1 hover:bg-[#e55a3a] transition-colors"
-            >
-              현재 프레임(#{currentIdx + 1}) 지정
-            </button>
-          </div>
-        </div>
-      </div>
-      {!ready && (
-        <p className="text-[11px] text-gray-500 mt-2">두 프레임을 모두 지정하면 자동 감지가 시작됩니다 (시작이 컨택보다 앞이어야 합니다).</p>
-      )}
-    </div>
-  );
-}
-
 export default function ObpComparison({ mode, frames, currentIdx, onSeek, contactFrame, onSetContact }) {
-  const [swingStart, setSwingStart] = useState(null);
   const [levels, setLevels] = useState({ foot: "고교", max: "고교", load: "고교", firstmove: "고교", footplant: "고교" });
-  const [selected, setSelected] = useState({ load: null, firstmove: null, footplant: null });
+  const [selected, setSelected] = useState({ foot: null, load: null, firstmove: null, footplant: null });
   const [tab, setTab] = useState("load");
 
-  const ready = swingStart != null && contactFrame != null && contactFrame > swingStart;
-
+  // Full-frame auto-detection (no window). Reset selections whenever
+  // detection re-runs so the user starts from the recommended frame.
   const detected = useMemo(() => {
-    if (!ready) return { load: null, firstmove: null, footplant: null };
-    const s = swingStart, e = contactFrame;
-    const load = detectLoad(frames, s, e);
-    const firstmove = detectFirstMove(frames, s, e, load);
-    const footplant = detectFootPlant(frames, s, e);
+    const n = frames.length;
+    if (!n || n < 5) return { load: null, firstmove: null, footplant: null };
+    const load = detectLoad(frames, 0, n - 1);
+    const firstmove = detectFirstMove(frames, 0, n - 1, load);
+    const footplant = detectFootPlant(frames, 0, n - 1);
     return { load, firstmove, footplant };
-  }, [frames, swingStart, contactFrame, ready]);
+  }, [frames]);
 
   useEffect(() => {
-    setSelected({ load: detected.load, firstmove: detected.firstmove, footplant: detected.footplant });
+    setSelected({
+      foot: detected.footplant,
+      load: detected.load,
+      firstmove: detected.firstmove,
+      footplant: detected.footplant,
+    });
   }, [detected]);
 
-  const setLevel = (key) => (lv) => setLevels((p) => ({ ...p, [key]: lv }));
-
+  // Pitch: max separation across all frames
   const sepMax = useMemo(() => {
-    if (!ready) return null;
     let mx = -Infinity, has = false;
-    for (let i = swingStart; i <= contactFrame; i++) {
-      const lm = frames[i] && frames[i].landmarks;
-      if (!lm) continue;
-      const v = Math.abs(frameAngles(lm).separationAngle);
+    for (const f of frames) {
+      if (!f || !f.landmarks) continue;
+      const v = Math.abs(frameAngles(f.landmarks).separationAngle);
       if (v != null) { has = true; if (v > mx) mx = v; }
     }
     return has ? mx : null;
-  }, [frames, swingStart, contactFrame, ready]);
+  }, [frames]);
+
+  const setLevel = (key) => (lv) => setLevels((p) => ({ ...p, [key]: lv }));
+  const onSelect = (key) => (idx) => setSelected((p) => ({ ...p, [key]: idx }));
 
   const activeTab = SWING_TABS.find((t) => t.key === tab);
   const showLateralHint = tab === "load" || tab === "firstmove";
-
-  const onSelectThumb = (key) => (idx) =>
-    setSelected((p) => ({ ...p, [key]: idx }));
-  const onDesignateCurrent = (key) => () =>
-    setSelected((p) => ({ ...p, [key]: currentIdx }));
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4">
@@ -368,22 +376,14 @@ export default function ObpComparison({ mode, frames, currentIdx, onSeek, contac
         <span className="text-[10px] font-semibold text-gray-400">{mode === "pitch" ? "투구" : "스윙"}</span>
       </div>
       <p className="text-[11px] text-gray-400 mb-4">
-        먼저 스윙 시작/컨택을 지정해 구간을 좁히면, 그 안에서 로드·첫움직임·발착지를 자동 감지합니다. 감지된 프레임 기준 ±3프레임 썸네일 중 정확한 것을 클릭해 최종 선택하세요.
+        {mode === "pitch"
+          ? "발착지 시점의 견갑-골반 분리각과 영상 내 최대 분리각을 추천합니다. 썸네일에서 최종 프레임을 선택하세요."
+          : "스윙 영상에서 로드·첫움직임·발착지를 자동으로 감지해 추천합니다. 추천은 시작점일 뿐, 슬라이더로 직접 조정해 최종 확정하세요."}
       </p>
-
-      <WindowControl
-        frames={frames}
-        swingStart={swingStart}
-        setSwingStart={setSwingStart}
-        contactFrame={contactFrame}
-        onSetContact={onSetContact}
-        currentIdx={currentIdx}
-        onSeek={onSeek}
-      />
 
       {mode === "pitch" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <EventCard
+          <PitchEventCard
             title="견갑-골반 분리각"
             subtitle="발 착지 시점"
             refMap={PITCH.foot}
@@ -391,12 +391,10 @@ export default function ObpComparison({ mode, frames, currentIdx, onSeek, contac
             setLevel={setLevel("foot")}
             frames={frames}
             center={detected.footplant}
-            selected={selected.footplant}
-            onSelectThumb={onSelectThumb("footplant")}
+            selected={selected.foot}
+            onSelectThumb={onSelect("foot")}
             onSeek={onSeek}
             currentIdx={currentIdx}
-            onDesignateCurrent={onDesignateCurrent("footplant")}
-            ready={ready}
           />
           <MaxCard
             title="견갑-골반 분리각 (최대값)"
@@ -404,7 +402,6 @@ export default function ObpComparison({ mode, frames, currentIdx, onSeek, contac
             refMap={PITCH.max}
             level={levels.max}
             setLevel={setLevel("max")}
-            ready={ready}
           />
         </div>
       ) : (
@@ -429,21 +426,19 @@ export default function ObpComparison({ mode, frames, currentIdx, onSeek, contac
               frames={frames}
             />
           ) : (
-            <EventCard
-              title="몸통-골반 분리각"
-              subtitle={activeTab.label}
+            <RecommendCard
+              title={activeTab.label}
+              eventLabel={activeTab.eventLabel}
               refMap={SWING[tab]}
               level={levels[tab]}
               setLevel={setLevel(tab)}
               frames={frames}
-              center={detected[tab]}
+              detected={detected[tab]}
               selected={selected[tab]}
-              onSelectThumb={onSelectThumb(tab)}
+              onSelect={onSelect(tab)}
               onSeek={onSeek}
               currentIdx={currentIdx}
-              onDesignateCurrent={onDesignateCurrent(tab)}
               hint={showLateralHint ? LATERAL_HINT : ""}
-              ready={ready}
             />
           )}
         </div>
