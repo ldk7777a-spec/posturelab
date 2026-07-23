@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { frameAngles } from "@/lib/biomechanics";
-import { detectFootPlant, detectLoad, detectFirstMove } from "@/lib/obpDetect";
+import { detectLoad, detectFirstMove, detectFootPlant } from "@/lib/obpDetect";
 
 const LEVELS = ["고교", "대학", "독립리그"];
 
@@ -65,10 +65,62 @@ function LightBadge({ rating }) {
   );
 }
 
-function DesignateCard({ title, subtitle, refMap, level, setLevel, designated, onDesignate, currentIdx, recommend, onSeek, hint }) {
+function ThumbRow({ frames, center, selected, onSelect, radius = 3 }) {
+  if (center == null) {
+    return (
+      <p className="text-xs text-gray-400 py-2 leading-relaxed">
+        지정한 구간 안에서 자동 감지하지 못했습니다. 슬라이더로 직접 이동한 뒤 아래 “현재 프레임으로 지정” 버튼을 눌러주세요.
+      </p>
+    );
+  }
+  const idxs = [];
+  for (let k = center - radius; k <= center + radius; k++) {
+    if (k < 0 || k >= frames.length) continue;
+    idxs.push(k);
+  }
+  return (
+    <div className="flex gap-1.5 overflow-x-auto pb-1">
+      {idxs.map((i) => {
+        const isSel = selected === i;
+        const isCenter = i === center;
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onSelect(i)}
+            className={`relative shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+              isSel ? "border-[#FF6B4A] ring-2 ring-orange-200" : isCenter ? "border-gray-400" : "border-gray-200"
+            }`}
+            style={{ width: 60, height: 60 }}
+            aria-label={`프레임 ${i + 1}`}
+          >
+            {frames[i] && frames[i].image ? (
+              <img src={frames[i].image} alt={`#${i + 1}`} className="w-full h-full object-cover" />
+            ) : (
+              <span className="w-full h-full flex items-center justify-center text-[11px] font-semibold text-gray-500 bg-gray-50">
+                #{i + 1}
+              </span>
+            )}
+            <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] font-semibold py-0.5 text-center">
+              {i + 1}
+            </span>
+            {isCenter && (
+              <span className="absolute top-0.5 right-0.5 bg-gray-800/80 text-white text-[8px] px-1 rounded">기준</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function EventCard({ title, subtitle, refMap, level, setLevel, frames, center, selected, onSelectThumb, onSeek, currentIdx, onDesignateCurrent, hint, ready }) {
   const ref = refMap[level];
-  const hasVal = designated && designated.value != null;
-  const rating = hasVal ? ratingFor(designated.value, ref) : null;
+  const val =
+    selected != null && frames[selected] && frames[selected].landmarks
+      ? Math.abs(frameAngles(frames[selected].landmarks).separationAngle)
+      : null;
+  const rating = val != null ? ratingFor(val, ref) : null;
   const r = rating ? LIGHT[rating] : null;
   return (
     <div className={`bg-white rounded-lg border-2 p-4 ${r ? r.border : "border-gray-200"}`}>
@@ -80,61 +132,52 @@ function DesignateCard({ title, subtitle, refMap, level, setLevel, designated, o
         <LevelSelect value={level} onChange={setLevel} />
       </div>
 
-      {recommend && recommend.idx != null && (
-        <div className="mb-3 rounded-lg bg-orange-50 border border-orange-100 p-2.5">
-          <p className="text-xs text-[#FF6B4A] font-semibold mb-2">이 프레임이 {recommend.label}인 것 같아요 (#{recommend.idx + 1}번)</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => onSeek(recommend.idx)}
-              className="text-xs font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-3 py-1.5 bg-white hover:bg-orange-50 transition-colors"
-            >
-              프레임 이동
-            </button>
-            <button
-              onClick={() => onDesignate(currentIdx)}
-              className="text-xs font-semibold text-white bg-[#FF6B4A] rounded-lg px-3 py-1.5 hover:bg-[#e55a3a] transition-colors"
-            >
-              이 프레임으로 지정
-            </button>
-          </div>
-        </div>
-      )}
-      {hint && <p className="text-[10px] text-gray-400 mb-3 leading-relaxed">{hint}</p>}
-
-      {hasVal ? (
-        <div>
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-3xl font-bold text-[#1A1A2E]">{Math.round(designated.value * 10) / 10}°</p>
-              <p className="text-[11px] text-gray-400 mt-1">지정 프레임 #{designated.idx + 1} · {level} 평균 {ref.avg}° ±{ref.sd}</p>
-            </div>
-            <LightBadge rating={rating} />
-          </div>
-          <button
-            onClick={() => onDesignate(currentIdx)}
-            className="mt-3 text-xs font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-3 py-1.5 hover:bg-orange-50 transition-colors"
-          >
-            현재 프레임(#{currentIdx + 1})으로 다시 지정
-          </button>
-        </div>
+      {!ready ? (
+        <p className="text-xs text-[#FF6B4A] font-medium py-2 leading-relaxed">
+          먼저 위에서 스윙 시작 / 컨택 프레임을 지정해주세요.
+        </p>
       ) : (
-        <div className="py-2">
-          <p className="text-sm text-gray-400 mb-3">
-            {designated ? "이 프레임에서 자세를 인식하지 못했습니다." : "프레임을 지정해주세요"}
-          </p>
-          <button
-            onClick={() => onDesignate(currentIdx)}
-            className={`text-xs font-semibold rounded-lg px-3 py-2 transition-colors ${designated ? "text-[#FF6B4A] border border-orange-200 hover:bg-orange-50" : "text-white bg-[#FF6B4A] hover:bg-[#e55a3a]"}`}
-          >
-            현재 프레임(#{currentIdx + 1}){designated ? "으로 다시 지정" : "로 지정"}
-          </button>
-        </div>
+        <>
+          <ThumbRow frames={frames} center={center} selected={selected} onSelect={onSelectThumb} />
+          {hint && <p className="text-[10px] text-gray-400 mt-2 mb-2 leading-relaxed">{hint}</p>}
+          {val != null ? (
+            <div className="mt-3">
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-[#1A1A2E]">{Math.round(val * 10) / 10}°</p>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    선택 프레임 #{selected + 1} · {level} 평균 {ref.avg}° ±{ref.sd}
+                  </p>
+                </div>
+                <LightBadge rating={rating} />
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <button
+                  onClick={() => onSeek(selected)}
+                  className="text-xs font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-3 py-1.5 bg-white hover:bg-orange-50 transition-colors"
+                >
+                  선택 프레임으로 이동
+                </button>
+                <button
+                  onClick={onDesignateCurrent}
+                  className="text-xs font-semibold text-white bg-[#FF6B4A] rounded-lg px-3 py-1.5 hover:bg-[#e55a3a] transition-colors"
+                >
+                  현재 프레임(#{currentIdx + 1})으로 지정
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 mt-2">
+              위 썸네일에서 프레임을 클릭하거나, 현재 프레임으로 직접 지정하세요.
+            </p>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-function MaxCard({ title, value, refMap, level, setLevel }) {
+function MaxCard({ title, value, refMap, level, setLevel, ready }) {
   const ref = refMap[level];
   const rating = ratingFor(value, ref);
   const r = rating ? LIGHT[rating] : null;
@@ -144,13 +187,15 @@ function MaxCard({ title, value, refMap, level, setLevel }) {
         <p className="text-sm font-bold text-[#1A1A2E] leading-tight">{title}</p>
         <LevelSelect value={level} onChange={setLevel} />
       </div>
-      {value == null ? (
-        <p className="text-sm text-gray-400">데이터가 없습니다.</p>
+      {!ready ? (
+        <p className="text-xs text-gray-400 py-2">스윙 시작 / 컨택 지정 후 자동 계산됩니다.</p>
+      ) : value == null ? (
+        <p className="text-sm text-gray-400">구간 내 데이터가 없습니다.</p>
       ) : (
         <div className="flex items-end justify-between">
           <div>
             <p className="text-3xl font-bold text-[#1A1A2E]">{Math.round(value * 10) / 10}°</p>
-            <p className="text-[11px] text-gray-400 mt-1">전체 프레임 최대값(자동) · {level} 평균 {ref.avg}° ±{ref.sd}</p>
+            <p className="text-[11px] text-gray-400 mt-1">지정 구간 내 최대값(자동) · {level} 평균 {ref.avg}° ±{ref.sd}</p>
           </div>
           <LightBadge rating={rating} />
         </div>
@@ -195,7 +240,7 @@ function ContactCard({ contactFrame, currentIdx, onSetContact, onSeek, frames })
         </div>
       ) : (
         <div className="py-2">
-          <p className="text-sm text-gray-400 mb-3">프레임을 지정해주세요</p>
+          <p className="text-sm text-gray-400 mb-3">현재 프레임을 컨택으로 지정해주세요.</p>
           <button
             onClick={() => onSetContact(currentIdx)}
             className="text-xs font-semibold text-white bg-[#FF6B4A] rounded-lg px-3 py-2 hover:bg-[#e55a3a] transition-colors"
@@ -208,43 +253,113 @@ function ContactCard({ contactFrame, currentIdx, onSetContact, onSeek, frames })
   );
 }
 
-export default function ObpComparison({ mode, frames, currentIdx, sepMax, onSeek, contactFrame, onSetContact }) {
-  const [levels, setLevels] = useState({ foot: "고교", max: "고교", load: "고교", firstmove: "고교", footplant: "고교" });
-  const [designated, setDesignated] = useState({ foot: null, load: null, firstmove: null, footplant: null });
-  const [tab, setTab] = useState("load");
-  const [recommended, setRecommended] = useState({ foot: null, load: null, firstmove: null, footplant: null });
+function WindowControl({ frames, swingStart, setSwingStart, contactFrame, onSetContact, currentIdx, onSeek }) {
+  const ready = swingStart != null && contactFrame != null && contactFrame > swingStart;
+  return (
+    <div className={`rounded-lg p-3 mb-3 border ${ready ? "bg-gray-50 border-gray-200" : "bg-orange-50 border-orange-100"}`}>
+      <p className="text-xs font-bold text-[#FF6B4A] mb-2">1단계 · 스윙 시작 / 컨택 프레임 지정</p>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="bg-white rounded-lg border border-gray-200 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-700">스윙 시작</span>
+            <span className="text-xs font-bold text-[#1A1A2E]">{swingStart != null ? `#${swingStart + 1}` : "미지정"}</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={Math.max(0, frames.length - 1)}
+            value={swingStart != null ? swingStart : 0}
+            onChange={(e) => setSwingStart(Number(e.target.value))}
+            className="w-full accent-[#FF6B4A] cursor-pointer"
+          />
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => swingStart != null && onSeek(swingStart)}
+              disabled={swingStart == null}
+              className="text-[11px] font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-2.5 py-1 bg-white hover:bg-orange-50 disabled:opacity-40 transition-colors"
+            >
+              이동
+            </button>
+            <button
+              onClick={() => setSwingStart(currentIdx)}
+              className="text-[11px] font-semibold text-white bg-[#FF6B4A] rounded-lg px-2.5 py-1 hover:bg-[#e55a3a] transition-colors"
+            >
+              현재 프레임(#{currentIdx + 1}) 지정
+            </button>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-700">컨택</span>
+            <span className="text-xs font-bold text-[#1A1A2E]">{contactFrame != null ? `#${contactFrame + 1}` : "미지정"}</span>
+          </div>
+          <p className="text-[10px] text-gray-400 mb-2 leading-relaxed">배트-공 접촉 시점을 정하면 분석 구간이 확정됩니다.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => contactFrame != null && onSeek(contactFrame)}
+              disabled={contactFrame == null}
+              className="text-[11px] font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-2.5 py-1 bg-white hover:bg-orange-50 disabled:opacity-40 transition-colors"
+            >
+              이동
+            </button>
+            <button
+              onClick={() => onSetContact(currentIdx)}
+              className="text-[11px] font-semibold text-white bg-[#FF6B4A] rounded-lg px-2.5 py-1 hover:bg-[#e55a3a] transition-colors"
+            >
+              현재 프레임(#{currentIdx + 1}) 지정
+            </button>
+          </div>
+        </div>
+      </div>
+      {!ready && (
+        <p className="text-[11px] text-gray-500 mt-2">두 프레임을 모두 지정하면 자동 감지가 시작됩니다 (시작이 컨택보다 앞이어야 합니다).</p>
+      )}
+    </div>
+  );
+}
 
-  const getSepAt = (i) => {
-    const lm = frames[i]?.landmarks;
-    if (!lm) return null;
-    return Math.abs(frameAngles(lm).separationAngle);
-  };
-  const designate = (key, idx) =>
-    setDesignated((p) => ({ ...p, [key]: { idx, value: getSepAt(idx) } }));
+export default function ObpComparison({ mode, frames, currentIdx, onSeek, contactFrame, onSetContact }) {
+  const [swingStart, setSwingStart] = useState(null);
+  const [levels, setLevels] = useState({ foot: "고교", max: "고교", load: "고교", firstmove: "고교", footplant: "고교" });
+  const [selected, setSelected] = useState({ load: null, firstmove: null, footplant: null });
+  const [tab, setTab] = useState("load");
+
+  const ready = swingStart != null && contactFrame != null && contactFrame > swingStart;
+
+  const detected = useMemo(() => {
+    if (!ready) return { load: null, firstmove: null, footplant: null };
+    const s = swingStart, e = contactFrame;
+    const load = detectLoad(frames, s, e);
+    const firstmove = detectFirstMove(frames, s, e, load);
+    const footplant = detectFootPlant(frames, s, e);
+    return { load, firstmove, footplant };
+  }, [frames, swingStart, contactFrame, ready]);
+
+  useEffect(() => {
+    setSelected({ load: detected.load, firstmove: detected.firstmove, footplant: detected.footplant });
+  }, [detected]);
+
   const setLevel = (key) => (lv) => setLevels((p) => ({ ...p, [key]: lv }));
 
-  // compute auto-recommendations + pre-designate on first mount
-  useEffect(() => {
-    const footRec = detectFootPlant(frames);
-    const loadRec = detectLoad(frames);
-    const firstmoveRec = detectFirstMove(frames);
-    setRecommended({ foot: footRec, load: loadRec, firstmove: firstmoveRec, footplant: footRec });
-    setDesignated({
-      foot: footRec != null ? { idx: footRec, value: getSepAt(footRec) } : null,
-      load: loadRec != null ? { idx: loadRec, value: getSepAt(loadRec) } : null,
-      firstmove: firstmoveRec != null ? { idx: firstmoveRec, value: getSepAt(firstmoveRec) } : null,
-      footplant: footRec != null ? { idx: footRec, value: getSepAt(footRec) } : null,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const recommendFor = (key, label) => {
-    const idx = recommended[key];
-    return idx != null ? { idx, label } : null;
-  };
+  const sepMax = useMemo(() => {
+    if (!ready) return null;
+    let mx = -Infinity, has = false;
+    for (let i = swingStart; i <= contactFrame; i++) {
+      const lm = frames[i] && frames[i].landmarks;
+      if (!lm) continue;
+      const v = Math.abs(frameAngles(lm).separationAngle);
+      if (v != null) { has = true; if (v > mx) mx = v; }
+    }
+    return has ? mx : null;
+  }, [frames, swingStart, contactFrame, ready]);
 
   const activeTab = SWING_TABS.find((t) => t.key === tab);
   const showLateralHint = tab === "load" || tab === "firstmove";
+
+  const onSelectThumb = (key) => (idx) =>
+    setSelected((p) => ({ ...p, [key]: idx }));
+  const onDesignateCurrent = (key) => () =>
+    setSelected((p) => ({ ...p, [key]: currentIdx }));
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4">
@@ -252,21 +367,36 @@ export default function ObpComparison({ mode, frames, currentIdx, sepMax, onSeek
         <p className="text-sm font-bold text-[#1A1A2E]">OBP 참고 비교</p>
         <span className="text-[10px] font-semibold text-gray-400">{mode === "pitch" ? "투구" : "스윙"}</span>
       </div>
-      <p className="text-[11px] text-gray-400 mb-4">레벨별 평균±표준편차 범위 기준 신호등. 자동 추천 프레임이 지정되어 있으며, 슬라이더로 직접 바꿀 수 있습니다.</p>
+      <p className="text-[11px] text-gray-400 mb-4">
+        먼저 스윙 시작/컨택을 지정해 구간을 좁히면, 그 안에서 로드·첫움직임·발착지를 자동 감지합니다. 감지된 프레임 기준 ±3프레임 썸네일 중 정확한 것을 클릭해 최종 선택하세요.
+      </p>
+
+      <WindowControl
+        frames={frames}
+        swingStart={swingStart}
+        setSwingStart={setSwingStart}
+        contactFrame={contactFrame}
+        onSetContact={onSetContact}
+        currentIdx={currentIdx}
+        onSeek={onSeek}
+      />
 
       {mode === "pitch" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <DesignateCard
+          <EventCard
             title="견갑-골반 분리각"
             subtitle="발 착지 시점"
             refMap={PITCH.foot}
             level={levels.foot}
             setLevel={setLevel("foot")}
-            designated={designated.foot}
-            onDesignate={(idx) => designate("foot", idx)}
-            currentIdx={currentIdx}
-            recommend={recommendFor("foot", "발 착지")}
+            frames={frames}
+            center={detected.footplant}
+            selected={selected.footplant}
+            onSelectThumb={onSelectThumb("footplant")}
             onSeek={onSeek}
+            currentIdx={currentIdx}
+            onDesignateCurrent={onDesignateCurrent("footplant")}
+            ready={ready}
           />
           <MaxCard
             title="견갑-골반 분리각 (최대값)"
@@ -274,6 +404,7 @@ export default function ObpComparison({ mode, frames, currentIdx, sepMax, onSeek
             refMap={PITCH.max}
             level={levels.max}
             setLevel={setLevel("max")}
+            ready={ready}
           />
         </div>
       ) : (
@@ -298,18 +429,21 @@ export default function ObpComparison({ mode, frames, currentIdx, sepMax, onSeek
               frames={frames}
             />
           ) : (
-            <DesignateCard
+            <EventCard
               title="몸통-골반 분리각"
               subtitle={activeTab.label}
               refMap={SWING[tab]}
               level={levels[tab]}
               setLevel={setLevel(tab)}
-              designated={designated[tab]}
-              onDesignate={(idx) => designate(tab, idx)}
-              currentIdx={currentIdx}
-              recommend={recommendFor(tab, activeTab.recLabel)}
+              frames={frames}
+              center={detected[tab]}
+              selected={selected[tab]}
+              onSelectThumb={onSelectThumb(tab)}
               onSeek={onSeek}
+              currentIdx={currentIdx}
+              onDesignateCurrent={onDesignateCurrent(tab)}
               hint={showLateralHint ? LATERAL_HINT : ""}
+              ready={ready}
             />
           )}
         </div>

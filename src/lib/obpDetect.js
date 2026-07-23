@@ -1,7 +1,11 @@
 // Auto event-detection helpers for OBP comparison (swing phases).
-// Robust to pose jitter: smoothing + temporal-order constraints.
-// Returns a 0-based frame index, or null when no confident phase is found
-// (UI then falls back to manual frame designation).
+// All detection is constrained to a user-defined window [startIdx, endIdx]
+// (swing-start to contact). No percentage-based range guessing.
+// Returns a 0-based frame index (the detected "center"), or null when not
+// confident — the UI then prompts manual designation.
+// Preprocessing: null interpolation -> 3-point median filter -> 3-point moving avg.
+
+const DEBUG = true;
 
 const LHIP = 23, RHIP = 24, LANKLE = 27, RANKLE = 28;
 
@@ -23,7 +27,6 @@ function interp(arr) {
   return out;
 }
 
-// 3-point median filter: kills single-frame jitter spikes
 function medianFilter3(arr) {
   return arr.map((_, i) => {
     const win = [arr[i - 1], arr[i], arr[i + 1]].filter((v) => v != null);
@@ -33,7 +36,6 @@ function medianFilter3(arr) {
   });
 }
 
-// 3-point moving average: further smooths residual noise
 function smooth3(arr) {
   return arr.map((_, i) => {
     const win = [arr[i - 1], arr[i], arr[i + 1]].filter((v) => v != null);
@@ -73,108 +75,125 @@ function velocity(arr) {
   return v;
 }
 
-// average of the opening "stance" frames — the baseline pelvis position
-function stanceSegment(arr, n) {
-  const cnt = Math.max(3, Math.floor(n * 0.08));
-  let s = 0, k = 0;
-  for (let i = 0; i < cnt && i < n; i++) {
-    if (arr[i] != null) { s += arr[i]; k++; }
-  }
-  return k ? s / k : arr[0];
+function clamp(s, e, n) {
+  return [Math.max(0, s), Math.min(n - 1, e)];
 }
 
-// Load: pelvis-x turning point (direction reversal) in the front ~60%,
-// largest displacement from the stance baseline. Requires a genuine
-// reversal (sustained), not a single-frame blip.
-export function detectLoad(frames) {
+// Load: pelvis-x turning point (direction reversal) within [s,e], the one
+// with the largest displacement from the window-start baseline, confirmed
+// by sustained reversal in the following frame.
+export function detectLoad(frames, startIdx, endIdx) {
   if (!frames || !frames.length) return null;
+  if (startIdx == null || endIdx == null) return null;
   const n = frames.length;
-  const maxLoad = Math.floor(n * 0.6);
-  if (maxLoad < 4) return null;
+  const [s, e] = clamp(startIdx, endIdx, n);
+  if (e - s < 4) {
+    if (DEBUG) console.log("[obpDetect] load window too small", s, e);
+    return null;
+  }
   const xs = smooth3(medianFilter3(interp(pelvisXSeries(frames))));
-  const stance = stanceSegment(xs, n);
-  const totalRange = rangeOf(xs);
-  if (totalRange <= 0) return null;
-  const minDisp = Math.max(totalRange * 0.15, 0.01);
 
+  // stance baseline = average of the first ~15% of the window
+  const segCount = Math.max(2, Math.floor((e - s) * 0.15));
+  let base = 0, bk = 0;
+  for (let i = s; i <= Math.min(s + segCount, e); i++) {
+    if (xs[i] != null) { base += xs[i]; bk++; }
+  }
+  base = bk ? base / bk : xs[s];
+
+  const tr = rangeOf(xs.slice(s, e + 1));
+  const minDisp = Math.max(tr * 0.15, 0.01);
+
+  const candidates = [];
   let best = null, bestDisp = 0;
-  for (let i = 2; i < maxLoad - 1; i++) {
+  for (let i = s + 2; i <= e - 2; i++) {
     const before = xs[i] - xs[i - 1];
     const after = xs[i + 1] - xs[i];
-    if (before != null && after != null && before * after < 0) {
-      const disp = Math.abs(xs[i] - stance);
-      // require confirmation: the reversal must persist over the window
-      const confirm = Math.sign(after) === Math.sign(xs[i + 2] - xs[i + 1]);
-      if (disp > bestDisp && confirm) { bestDisp = disp; best = i; }
-    }
+    if (before == null || after == null || before * after >= 0) continue;
+    const disp = Math.abs(xs[i] - base);
+    const confirm = Math.sign(after) === Math.sign(xs[i + 2] - xs[i + 1]);
+    candidates.push({ i, disp, confirm });
+    if (disp > bestDisp && confirm) { bestDisp = disp; best = i; }
   }
+  if (DEBUG) console.log("[obpDetect] load window", s, e, "pelvisX(win)=", xs.slice(s, e + 1), "candidates=", candidates, "best=", best, "minDisp=", minDisp, "bestDisp=", bestDisp);
   if (best == null || bestDisp < minDisp) return null;
   return best;
 }
 
-// First move: first frame after Load where pelvis moves >=10% of total
-// x-range away from the load position, in a sustained direction.
-export function detectFirstMove(frames) {
+// First move: first frame after the load turning point where pelvis moves
+// >=10% of the window's x-range away from the load position, in a
+// sustained direction.
+export function detectFirstMove(frames, startIdx, endIdx, loadIdx) {
   if (!frames || !frames.length) return null;
-  const load = detectLoad(frames);
-  if (load == null) return null;
+  if (startIdx == null || endIdx == null || loadIdx == null) return null;
   const n = frames.length;
-  const maxFM = Math.min(n - 1, Math.floor(n * 0.75));
-  if (maxFM <= load) return null;
+  const [s, e] = clamp(startIdx, endIdx, n);
+  if (loadIdx < s || loadIdx >= e) {
+    if (DEBUG) console.log("[obpDetect] firstmove load out of window", loadIdx, s, e);
+    return null;
+  }
   const xs = smooth3(medianFilter3(interp(pelvisXSeries(frames))));
-  const totalRange = rangeOf(xs);
-  if (totalRange <= 0) return null;
-  const thr = Math.max(totalRange * 0.1, 0.01);
-  const xLoad = xs[load];
+  const tr = rangeOf(xs.slice(s, e + 1));
+  if (tr <= 0) return null;
+  const thr = Math.max(tr * 0.1, 0.01);
+  const xLoad = xs[loadIdx];
   let dir = 0;
-  for (let i = load + 1; i <= maxFM; i++) {
+  const candidates = [];
+  for (let i = loadIdx + 1; i <= e; i++) {
     const d = xs[i] - xLoad;
-    if (Math.abs(d) >= thr) {
-      const sign = Math.sign(d);
-      if (dir === 0) dir = sign;
-      // require the next frame to keep the same direction (no blip)
-      const next = xs[i + 1] != null ? xs[i + 1] - xs[i] : d;
-      if (sign === dir && Math.sign(next) === dir) return i;
+    if (Math.abs(d) < thr) continue;
+    const sign = Math.sign(d);
+    const next = xs[i + 1] != null ? xs[i + 1] - xs[i] : d;
+    const confirm = Math.sign(next) === sign;
+    candidates.push({ i, d: Math.round(d * 1000) / 1000, confirm });
+    if (dir === 0) dir = sign;
+    if (sign === dir && confirm) {
+      if (DEBUG) console.log("[obpDetect] firstmove load=", loadIdx, "candidates=", candidates, "best=", i);
+      return i;
     }
   }
+  if (DEBUG) console.log("[obpDetect] firstmove candidates=", candidates, "best=null");
   return null;
 }
 
-// Foot plant: lead ankle's vertical velocity drops to ~0 after a clear
-// stride motion. Window is after load (or 15% fallback) up to ~85%.
-// The lead foot is the ankle with the larger vertical range during the
-// stride window.
-export function detectFootPlant(frames) {
+// Foot plant: lead ankle (larger vertical range within the window) — the
+// first frame its vertical velocity stabilizes (~0) after a clear move.
+export function detectFootPlant(frames, startIdx, endIdx) {
   if (!frames || !frames.length) return null;
+  if (startIdx == null || endIdx == null) return null;
   const n = frames.length;
-  if (n < 4) return null;
-  const strideEnd = Math.max(2, Math.floor(n * 0.7));
+  const [s, e] = clamp(startIdx, endIdx, n);
+  if (e - s < 3) {
+    if (DEBUG) console.log("[obpDetect] footplant window too small", s, e);
+    return null;
+  }
   const yL = ankleYSeries(frames, LANKLE);
   const yR = ankleYSeries(frames, RANKLE);
-  const rL = rangeOf(yL.slice(0, strideEnd + 1));
-  const rR = rangeOf(yR.slice(0, strideEnd + 1));
+  const rL = rangeOf(yL.slice(s, e + 1));
+  const rR = rangeOf(yR.slice(s, e + 1));
   if (rL <= 0 && rR <= 0) return null;
-  const leadRaw = rL >= rR ? yL : yR;
-  const ys = smooth3(medianFilter3(interp(leadRaw)));
+  const lead = rL >= rR ? yL : yR;
+  const ys = smooth3(medianFilter3(interp(lead)));
   const vel = velocity(ys);
 
-  const load = detectLoad(frames);
-  const start = load != null ? load : Math.floor(n * 0.15);
-  const end = Math.min(n - 1, Math.floor(n * 0.85));
-  if (end <= start) return null;
-
   let peak = 0;
-  for (let i = start + 1; i <= end; i++) {
+  for (let i = s + 1; i <= e; i++) {
     if (vel[i] != null && Math.abs(vel[i]) > peak) peak = Math.abs(vel[i]);
   }
   if (peak <= 0) return null;
   const thresh = Math.max(0.004, peak * 0.2);
 
+  const candidates = [];
   let moved = false;
-  for (let i = start + 1; i <= end; i++) {
+  for (let i = s + 1; i <= e; i++) {
     if (vel[i] == null) continue;
     if (Math.abs(vel[i]) >= peak * 0.4) moved = true;
-    if (moved && Math.abs(vel[i]) <= thresh) return i;
+    if (moved && Math.abs(vel[i]) <= thresh) {
+      candidates.push(i);
+      if (DEBUG) console.log("[obpDetect] footplant window", s, e, "ankleY(win)=", ys.slice(s, e + 1), "vel(win)=", vel.slice(s, e + 1), "peak=", peak, "best=", i);
+      return i;
+    }
   }
+  if (DEBUG) console.log("[obpDetect] footplant best=null candidates=", candidates);
   return null;
 }
