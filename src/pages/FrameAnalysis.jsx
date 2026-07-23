@@ -9,7 +9,6 @@ import {
 } from "@/lib/metricRanges";
 import AngleGraph from "@/components/analysis/AngleGraph";
 import ObpComparison from "@/components/analysis/ObpComparison";
-import MovementSummary from "@/components/analysis/MovementSummary";
 import { base44 } from "@/api/base44Client";
 
 function summarize(values) {
@@ -252,16 +251,6 @@ export default function FrameAnalysis() {
         </div>
       </div>
 
-      {/* Movement report · step 1: event gallery + traffic-light metrics */}
-      <div className="max-w-md lg:max-w-5xl mx-auto px-4 pt-4">
-        <MovementSummary
-          frames={frames}
-          setIdx={setIdx}
-          contactFrame={contactFrame}
-          onSetContact={() => setContactFrame(safeIdx)}
-        />
-      </div>
-
       {/* Desktop: frame left, metrics right (horizontal grid); Mobile: stacked */}
       <div className="max-w-md lg:max-w-5xl mx-auto px-4 py-6">
         <div className="lg:grid lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-6 lg:items-start">
@@ -428,6 +417,8 @@ export default function FrameAnalysis() {
                   currentIdx={safeIdx}
                   sepMax={sepSummary.max}
                   onSeek={setIdx}
+                  contactFrame={contactFrame}
+                  onSetContact={(idx) => setContactFrame(idx)}
                 />
               </div>
             )}

@@ -19,6 +19,7 @@ const SWING_TABS = [
   { key: "load", label: "로드", recLabel: "로드 자세" },
   { key: "firstmove", label: "첫 움직임", recLabel: "첫 움직임" },
   { key: "footplant", label: "발 착지", recLabel: "발 착지" },
+  { key: "contact", label: "컨택" },
 ];
 
 const LATERAL_HINT = "이 추천은 옆에서 촬영한 영상에서 더 정확합니다. 정면 촬영 영상은 직접 확인해서 조정해주세요.";
@@ -158,7 +159,56 @@ function MaxCard({ title, value, refMap, level, setLevel }) {
   );
 }
 
-export default function ObpComparison({ mode, frames, currentIdx, sepMax, onSeek }) {
+function ContactCard({ contactFrame, currentIdx, onSetContact, onSeek, frames }) {
+  const set = contactFrame != null && contactFrame >= 0 && contactFrame < frames.length;
+  return (
+    <div className="bg-white rounded-lg border-2 border-gray-200 p-4">
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <p className="text-sm font-bold text-[#1A1A2E] leading-tight">
+          컨택
+          <span className="block text-[10px] font-medium text-gray-400 mt-0.5">배트-공 접촉 시점</span>
+        </p>
+      </div>
+      <p className="text-[10px] text-gray-400 mb-3 leading-relaxed">배트-공 접촉은 자동 감지가 불가해 현재 프레임을 직접 지정합니다.</p>
+      {set ? (
+        <div>
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-3xl font-bold text-[#1A1A2E]">#{contactFrame + 1}</p>
+              <p className="text-[11px] text-gray-400 mt-1">지정 프레임 #{contactFrame + 1} / {frames.length}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button
+              onClick={() => onSeek(contactFrame)}
+              className="text-xs font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-3 py-1.5 bg-white hover:bg-orange-50 transition-colors"
+            >
+              프레임 이동
+            </button>
+            <button
+              onClick={() => onSetContact(currentIdx)}
+              className="text-xs font-semibold text-white bg-[#FF6B4A] rounded-lg px-3 py-1.5 hover:bg-[#e55a3a] transition-colors"
+            >
+              현재 프레임(#{currentIdx + 1})으로 다시 지정
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="py-2">
+          <p className="text-sm text-gray-400 mb-3">프레임을 지정해주세요</p>
+          <button
+            onClick={() => onSetContact(currentIdx)}
+            className="text-xs font-semibold text-white bg-[#FF6B4A] rounded-lg px-3 py-2 hover:bg-[#e55a3a] transition-colors"
+          >
+            현재 프레임(#{currentIdx + 1})로 지정
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ObpComparison({ mode, frames, currentIdx, sepMax, onSeek, contactFrame, onSetContact }) {
   const [levels, setLevels] = useState({ foot: "고교", max: "고교", load: "고교", firstmove: "고교", footplant: "고교" });
   const [designated, setDesignated] = useState({ foot: null, load: null, firstmove: null, footplant: null });
   const [tab, setTab] = useState("load");
@@ -239,19 +289,29 @@ export default function ObpComparison({ mode, frames, currentIdx, sepMax, onSeek
               </button>
             ))}
           </div>
-          <DesignateCard
-            title="몸통-골반 분리각"
-            subtitle={activeTab.label}
-            refMap={SWING[tab]}
-            level={levels[tab]}
-            setLevel={setLevel(tab)}
-            designated={designated[tab]}
-            onDesignate={(idx) => designate(tab, idx)}
-            currentIdx={currentIdx}
-            recommend={recommendFor(tab, activeTab.recLabel)}
-            onSeek={onSeek}
-            hint={showLateralHint ? LATERAL_HINT : ""}
-          />
+          {tab === "contact" ? (
+            <ContactCard
+              contactFrame={contactFrame}
+              currentIdx={currentIdx}
+              onSetContact={onSetContact}
+              onSeek={onSeek}
+              frames={frames}
+            />
+          ) : (
+            <DesignateCard
+              title="몸통-골반 분리각"
+              subtitle={activeTab.label}
+              refMap={SWING[tab]}
+              level={levels[tab]}
+              setLevel={setLevel(tab)}
+              designated={designated[tab]}
+              onDesignate={(idx) => designate(tab, idx)}
+              currentIdx={currentIdx}
+              recommend={recommendFor(tab, activeTab.recLabel)}
+              onSeek={onSeek}
+              hint={showLateralHint ? LATERAL_HINT : ""}
+            />
+          )}
         </div>
       )}
 
