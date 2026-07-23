@@ -9,14 +9,15 @@ const CAT_COLORS = {
   spine: "#FF6B4A", shoulders: "#3B82F6", pelvis: "#8B5CF6",
   knees: "#10B981", feet: "#F59E0B",
 };
-const CAT_LABELS = {
-  spine: "척추", shoulders: "어깨", pelvis: "골반", knees: "무릎", feet: "발·족부",
-};
+const CAT_LABELS = (lang) => ({
+  spine: T.catSpine[lang], shoulders: T.catShoulders[lang],
+  pelvis: T.catPelvis[lang], knees: T.catKnees[lang], feet: T.catFeet[lang],
+});
 
 function CategoryCard({ catKey, data, lang }) {
   const [open, setOpen] = useState(false);
   const color = CAT_COLORS[catKey] || "#FF6B4A";
-  const label = CAT_LABELS[catKey] || catKey;
+  const label = CAT_LABELS(lang)[catKey] || catKey;
   const hasEquipmentFlag = data?.flags?.length > 0;
 
   return (
@@ -104,7 +105,7 @@ export default function AnalysisReport() {
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
           className="bg-[#1A1A2E] rounded-2xl p-7"
         >
-          <p className="text-white/50 text-sm mb-2">분석 요약</p>
+          <p className="text-white/50 text-sm mb-2">{T.summaryLabel[lang]}</p>
           <p className="text-white text-base font-bold leading-relaxed">{summary}</p>
         </motion.div>
 
