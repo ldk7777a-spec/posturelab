@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import Logo from "@/components/landing/Logo";
@@ -154,6 +155,13 @@ export default function AuthModal({ onClose, onSuccess }) {
                   className="w-full bg-[#FF6B4A] hover:bg-[#e55a3a] text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors mt-2">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : mode === "login" ? "로그인" : "회원가입"}
                 </button>
+                {mode === "login" && (
+                  <div className="text-center mt-1">
+                    <Link to="/forgot-password" className="text-xs text-gray-400 hover:text-[#FF6B4A]">
+                      비밀번호를 잊으셨나요?
+                    </Link>
+                  </div>
+                )}
               </form>
 
               <div className="mt-4 text-center">
