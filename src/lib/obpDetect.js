@@ -79,80 +79,67 @@ function clamp(s, e, n) {
   return [Math.max(0, s), Math.min(n - 1, e)];
 }
 
-// Load: pelvis-x turning point (direction reversal) within [s,e], the one
-// with the largest displacement from the window-start baseline, confirmed
-// by sustained reversal in the following frame.
+// Load: the pelvis-x extreme on the side OPPOSITE the pitcher. In a normal
+// delivery/swing the pelvis shifts away from the pitcher (load) BEFORE
+// driving toward the pitcher, so the earliest of the global min/max within
+// the window is the opposite-to-pitcher extreme = load.
 export function detectLoad(frames, startIdx, endIdx) {
   if (!frames || !frames.length) return null;
-  if (startIdx == null || endIdx == null) return null;
   const n = frames.length;
-  const [s, e] = clamp(startIdx, endIdx, n);
+  const [s, e] = startIdx == null || endIdx == null ? [0, n - 1] : clamp(startIdx, endIdx, n);
   if (e - s < 4) {
     if (DEBUG) console.log("[obpDetect] load window too small", s, e);
     return null;
   }
   const xs = smooth3(medianFilter3(interp(pelvisXSeries(frames))));
-
-  // stance baseline = average of the first ~15% of the window
-  const segCount = Math.max(2, Math.floor((e - s) * 0.15));
-  let base = 0, bk = 0;
-  for (let i = s; i <= Math.min(s + segCount, e); i++) {
-    if (xs[i] != null) { base += xs[i]; bk++; }
+  let minV = Infinity, maxV = -Infinity, minI = null, maxI = null;
+  for (let i = s; i <= e; i++) {
+    const v = xs[i];
+    if (v == null) continue;
+    if (v < minV) { minV = v; minI = i; }
+    if (v > maxV) { maxV = v; maxI = i; }
   }
-  base = bk ? base / bk : xs[s];
-
-  const tr = rangeOf(xs.slice(s, e + 1));
-  const minDisp = Math.max(tr * 0.15, 0.01);
-
-  const candidates = [];
-  let best = null, bestDisp = 0;
-  for (let i = s + 2; i <= e - 2; i++) {
-    const before = xs[i] - xs[i - 1];
-    const after = xs[i + 1] - xs[i];
-    if (before == null || after == null || before * after >= 0) continue;
-    const disp = Math.abs(xs[i] - base);
-    const confirm = Math.sign(after) === Math.sign(xs[i + 2] - xs[i + 1]);
-    candidates.push({ i, disp, confirm });
-    if (disp > bestDisp && confirm) { bestDisp = disp; best = i; }
-  }
-  if (DEBUG) console.log("[obpDetect] load window", s, e, "pelvisX(win)=", xs.slice(s, e + 1), "candidates=", candidates, "best=", best, "minDisp=", minDisp, "bestDisp=", bestDisp);
-  if (best == null || bestDisp < minDisp) return null;
-  return best;
+  if (minI == null || maxI == null) return null;
+  const load = minI <= maxI ? minI : maxI; // earlier extreme = opposite-to-pitcher side
+  if (DEBUG) console.log("[obpDetect] load minI=", minI, "minV=", minV, "maxI=", maxI, "maxV=", maxV, "load=", load, "xs(win)=", xs.slice(s, e + 1));
+  return load;
 }
 
-// First move: first frame after the load turning point where pelvis moves
-// >=10% of the window's x-range away from the load position, in a
-// sustained direction.
+// First move: first frame after the load where pelvis moves toward the
+// pitcher (the opposite extreme) by >=10% of the window's x-range.
 export function detectFirstMove(frames, startIdx, endIdx, loadIdx) {
-  if (!frames || !frames.length) return null;
-  if (startIdx == null || endIdx == null || loadIdx == null) return null;
+  if (!frames || !frames.length || loadIdx == null) return null;
   const n = frames.length;
-  const [s, e] = clamp(startIdx, endIdx, n);
-  if (loadIdx < s || loadIdx >= e) {
-    if (DEBUG) console.log("[obpDetect] firstmove load out of window", loadIdx, s, e);
-    return null;
-  }
+  const [s, e] = startIdx == null || endIdx == null ? [0, n - 1] : clamp(startIdx, endIdx, n);
   const xs = smooth3(medianFilter3(interp(pelvisXSeries(frames))));
-  const tr = rangeOf(xs.slice(s, e + 1));
-  if (tr <= 0) return null;
-  const thr = Math.max(tr * 0.1, 0.01);
-  const xLoad = xs[loadIdx];
-  let dir = 0;
+  let minV = Infinity, maxV = -Infinity, minI = null, maxI = null;
+  for (let i = s; i <= e; i++) {
+    const v = xs[i];
+    if (v == null) continue;
+    if (v < minV) { minV = v; minI = i; }
+    if (v > maxV) { maxV = v; maxI = i; }
+  }
+  if (minI == null || maxI == null) return null;
+  const range = maxV - minV;
+  if (range <= 0) return null;
+  const loadX = xs[loadIdx];
+  if (loadX == null) return null;
+  // pitcher side = the opposite extreme from load
+  const loadIsMin = (loadX - minV) <= (maxV - loadX);
+  const targetX = loadIsMin ? maxV : minV;
+  const dir = Math.sign(targetX - loadX);
+  const thr = Math.max(range * 0.1, 0.01);
   const candidates = [];
   for (let i = loadIdx + 1; i <= e; i++) {
-    const d = xs[i] - xLoad;
-    if (Math.abs(d) < thr) continue;
-    const sign = Math.sign(d);
-    const next = xs[i + 1] != null ? xs[i + 1] - xs[i] : d;
-    const confirm = Math.sign(next) === sign;
-    candidates.push({ i, d: Math.round(d * 1000) / 1000, confirm });
-    if (dir === 0) dir = sign;
-    if (sign === dir && confirm) {
-      if (DEBUG) console.log("[obpDetect] firstmove load=", loadIdx, "candidates=", candidates, "best=", i);
+    if (xs[i] == null) continue;
+    const d = xs[i] - loadX;
+    if (Math.sign(d) === dir && Math.abs(d) >= thr) {
+      candidates.push({ i, d: Math.round(d * 1000) / 1000 });
+      if (DEBUG) console.log("[obpDetect] firstmove load=", loadIdx, "dir=", dir, "thr=", thr, "candidates=", candidates, "best=", i);
       return i;
     }
   }
-  if (DEBUG) console.log("[obpDetect] firstmove candidates=", candidates, "best=null");
+  if (DEBUG) console.log("[obpDetect] firstmove no candidate load=", loadIdx, "dir=", dir, "thr=", thr);
   return null;
 }
 
