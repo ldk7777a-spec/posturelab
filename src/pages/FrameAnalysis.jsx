@@ -395,7 +395,7 @@ export default function FrameAnalysis() {
               </div>
             </div>
 
-            {obpMode === "none" && (
+            {obpMode === "none" && sport !== "golf" && (
               <>
                 {/* 3. 영상 전체 요약 · 관절 가동각 */}
                 <div>
