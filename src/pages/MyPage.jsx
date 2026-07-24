@@ -195,7 +195,7 @@ export default function MyPage() {
               <div key={r.id} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4 hover:shadow-sm transition-shadow cursor-pointer"
                 onClick={() => {
                   if (r.video_url && r.frames?.list?.length) {
-                    navigate("/frame-analysis", { state: { videoUrl: r.video_url, framesData: r.frames.list, category: r.category, view: r.view, result: r.result, imageUrl: r.image_url } });
+                    navigate("/frame-analysis", { state: { videoUrl: r.video_url, framesData: r.frames.list, category: r.category, view: r.view, result: r.result, imageUrl: r.image_url, recordId: r.id } });
                   } else {
                     navigate("/report", { state: { result: r.result, imageUrl: r.image_url } });
                   }
@@ -205,7 +205,7 @@ export default function MyPage() {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-[#1A1A2E]">{SPORT_LABELS[r.category] || r.category}</p>
+                    <p className="text-sm font-bold text-[#1A1A2E]">{r.category ? (SPORT_LABELS[r.category] || r.category) : "일반 자세"}</p>
                     {r.video_url && r.frames?.list?.length && (
                       <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full">동영상</span>
                     )}

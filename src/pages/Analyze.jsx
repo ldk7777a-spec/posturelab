@@ -23,7 +23,7 @@ const VIEWS = (lang) => [
 export default function Analyze() {
   const navigate = useNavigate();
   const { lang } = useLang();
-  const [step, setStep] = useState("category"); // category | view | capture
+  const [step, setStep] = useState("capture"); // capture only — sport is an optional tag chosen on the results screen
   const [category, setCategory] = useState(null);
   const [view, setView] = useState("front");
   const [preview, setPreview] = useState(null);
@@ -66,12 +66,12 @@ export default function Analyze() {
       setUploading(false);
       const landmarker = await getPoseLandmarker();
       if (!landmarker) throw new Error("AI 자세 인식 모델을 불러오지 못했습니다.");
-      if (!category) throw new Error("종목을 먼저 선택해 주세요.");
       if (!view) throw new Error("관점을 먼저 선택해 주세요.");
 
       let landmarks = null;
       let frameCanvas = null;
       let videoFrames = null;
+      let recordId = null;
 
       if (type === "video") {
         const v = document.createElement("video");
@@ -138,7 +138,7 @@ export default function Analyze() {
       try {
         const me = await base44.auth.me();
         if (me?.id) {
-          await base44.entities.AnalysisRecord.create({
+          const rec = await base44.entities.AnalysisRecord.create({
             user_id: me.id,
             category,
             view,
@@ -148,11 +148,12 @@ export default function Analyze() {
             overall_score: result.overallScore,
             result,
           });
+          recordId = rec.id;
         }
       } catch { /* not logged in — result still shown */ }
 
       if (videoFrames) {
-        navigate("/frame-analysis", { state: { frames: videoFrames, category, view, result, imageUrl: file_url } });
+        navigate("/frame-analysis", { state: { frames: videoFrames, category, view, result, imageUrl: file_url, recordId } });
       } else {
         navigate("/report", { state: { result, imageUrl: file_url } });
       }
@@ -173,39 +174,23 @@ export default function Analyze() {
   };
 
   const isLoading = uploading || analyzing;
-  const views = VIEWS(lang);
-  const selectedCat = categoriesFor(lang).find((c) => c.key === category);
+  // sport is now an optional tag chosen on the results screen (Phase 0 refactor)
 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
-          <button onClick={() => {
-            if (step === "capture") { setStep("category"); reset(); }
-            else navigate("/");
-          }} className="text-gray-400 hover:text-[#1A1A2E] transition-colors">
+          <button onClick={() => { if (preview) reset(); else navigate("/"); }} className="text-gray-400 hover:text-[#1A1A2E] transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
             <h1 className="text-base font-bold text-[#1A1A2E]">{T.analyzeTitle[lang]}</h1>
-            <p className="text-xs text-gray-400">
-              {step === "category" ? T.stepSelect[lang] : T.photoInput[lang]}
-            </p>
+            <p className="text-xs text-gray-400">{T.photoInput[lang]}</p>
           </div>
-          {step !== "category" && selectedCat && (
-            <span className="ml-auto text-sm font-semibold text-[#FF6B4A] bg-orange-50 px-3 py-1 rounded-full">
-              {selectedCat.emoji} {selectedCat.label}
-            </span>
-          )}
         </div>
-        {/* Step indicator */}
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 pb-3 flex gap-2">
-          {["category", "capture"].map((s, i) => (
-            <div key={s} className={`h-1 flex-1 rounded-full transition-all ${
-              s === step ? "bg-[#FF6B4A]" : i < ["category","capture"].indexOf(step) ? "bg-orange-200" : "bg-gray-100"
-            }`} />
-          ))}
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pb-3">
+          <div className="h-1 w-full rounded-full bg-[#FF6B4A]" />
         </div>
       </div>
 
@@ -213,23 +198,7 @@ export default function Analyze() {
 
         {/* Step 1: Category */}
         <AnimatePresence mode="wait">
-          {step === "category" && (
-            <motion.div key="cat" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{T.catSelect[lang]}</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {categoriesFor(lang).map((cat) => (
-                  <button key={cat.key} onClick={() => { setCategory(cat.key); setStep("capture"); }}
-                    className="bg-white rounded-2xl p-4 text-left border-2 border-gray-100 hover:border-[#FF6B4A] hover:bg-orange-50 transition-all group">
-                    <span className="text-3xl mb-2 block">{cat.emoji}</span>
-                    <p className="text-sm font-bold text-[#1A1A2E] group-hover:text-[#FF6B4A]">{cat.label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{cat.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Step 2: Capture */}
+          {/* Capture */}
           {step === "capture" && (
             <motion.div key="capture" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="space-y-5">

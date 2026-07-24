@@ -5,7 +5,8 @@
       "type": "string"
     },
     "category": {
-      "type": "string"
+      "type": "string",
+      "description": "Optional sport tag (e.g. baseball, golf). Null = General/unspecified. Chosen on the results screen, decoupled from upload."
     },
     "view": {
       "type": "string"
@@ -30,8 +31,7 @@
     }
   },
   "required": [
-    "user_id",
-    "category"
+    "user_id"
   ],
   "name": "AnalysisRecord"
 }

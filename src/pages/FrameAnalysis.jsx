@@ -60,6 +60,16 @@ export default function FrameAnalysis() {
   const [zoom, setZoom] = useState(1);
   const [obpMode, setObpMode] = useState("none");
   const [contactFrame, setContactFrame] = useState(null);
+  const [sport, setSport] = useState(state?.category || null);
+  const [recordId] = useState(state?.recordId || null);
+
+  const changeSport = async (next) => {
+    setSport(next);
+    if (next !== "baseball") setObpMode("none");
+    if (recordId) {
+      try { await base44.entities.AnalysisRecord.update(recordId, { category: next }); } catch {}
+    }
+  };
 
   const canvasRef = useRef(null);
   const imgCache = useRef([]);
@@ -233,22 +243,43 @@ export default function FrameAnalysis() {
         </div>
       </div>
 
-      {/* OBP 모드 토글 */}
-      <div className="max-w-md lg:max-w-5xl mx-auto px-4 pt-4">
-        <div className="inline-flex items-center bg-white rounded-full border border-gray-200 p-1">
-          <button
-            onClick={() => setObpMode((m) => (m === "pitch" ? "none" : "pitch"))}
-            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${obpMode === "pitch" ? "bg-[#FF6B4A] text-white" : "text-gray-500 hover:text-[#1A1A2E]"}`}
-          >
-            투구
-          </button>
-          <button
-            onClick={() => setObpMode((m) => (m === "swing" ? "none" : "swing"))}
-            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${obpMode === "swing" ? "bg-[#FF6B4A] text-white" : "text-gray-500 hover:text-[#1A1A2E]"}`}
-          >
-            스윙
-          </button>
+      {/* 종목 선택 + 종목별 추가 분석 */}
+      <div className="max-w-md lg:max-w-5xl mx-auto px-4 pt-4 space-y-3">
+        <div className="bg-white rounded-2xl border border-gray-100 p-3">
+          <p className="text-xs font-bold text-[#1A1A2E] mb-2">종목 선택</p>
+          <div className="flex flex-wrap gap-2">
+            {[{ k: null, label: "일반/미지정" }, { k: "baseball", label: "⚾ 야구" }, { k: "golf", label: "⛳ 골프" }].map((s) => (
+              <button
+                key={String(s.k)}
+                onClick={() => changeSport(s.k)}
+                className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors ${sport === s.k ? "bg-[#FF6B4A] text-white border-[#FF6B4A]" : "bg-white text-gray-500 border-gray-200 hover:border-[#FF6B4A]"}`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          {sport === "golf" && (
+            <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
+              골프 스윙 8단계 자동 감지는 곧 추가됩니다. 지금은 범용 관절 분석을 먼저 확인하세요.
+            </p>
+          )}
         </div>
+        {sport === "baseball" && (
+          <div className="inline-flex items-center bg-white rounded-full border border-gray-200 p-1">
+            <button
+              onClick={() => setObpMode((m) => (m === "pitch" ? "none" : "pitch"))}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${obpMode === "pitch" ? "bg-[#FF6B4A] text-white" : "text-gray-500 hover:text-[#1A1A2E]"}`}
+            >
+              투구
+            </button>
+            <button
+              onClick={() => setObpMode((m) => (m === "swing" ? "none" : "swing"))}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${obpMode === "swing" ? "bg-[#FF6B4A] text-white" : "text-gray-500 hover:text-[#1A1A2E]"}`}
+            >
+              스윙
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Desktop: frame left, metrics right (horizontal grid); Mobile: stacked */}
