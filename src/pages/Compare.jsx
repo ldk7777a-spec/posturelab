@@ -21,7 +21,7 @@ function MetricCard({ label, value, rating }) {
   );
 }
 
-function CompareSide({ rec, ranges, idx, onSeek, alignFrame, onSetAlign, hideScrubber }) {
+function CompareSide({ rec, ranges, idx, onSeek, alignFrame, onSetAlign, hideScrubber, syncSlider }) {
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -124,6 +124,7 @@ function CompareSide({ rec, ranges, idx, onSeek, alignFrame, onSetAlign, hideScr
             className="w-full accent-[#FF6B4A] cursor-pointer"
           />
         )}
+        {hideScrubber && syncSlider}
       </div>
 
       {/* alignment point (manual only) */}
@@ -230,6 +231,33 @@ export default function Compare() {
   // master (left) slider value for sync mode
   const masterIdx = clamp(idxA, totalA);
 
+  // merged single slider rendered inside the left side's scrubber slot
+  const mergedSlider = synced && (
+    <div className="bg-white rounded-2xl border border-orange-200 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-bold text-[#1A1A2E]">동기화 슬라이더</p>
+        <p className="text-[11px] text-gray-400">
+          영상1 #{masterIdx + 1}/{totalA} · 영상2 #{clamp(idxB, totalB) + 1}/{totalB}
+        </p>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={Math.max(0, totalA - 1)}
+        value={masterIdx}
+        onChange={(e) => {
+          const v = Number(e.target.value);
+          setIdxA(v);
+          setIdxB(clamp(v + offset, totalB));
+        }}
+        className="w-full accent-[#FF6B4A] cursor-pointer"
+      />
+      <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">
+        슬라이더를 움직이면 영상1은 그대로, 영상2는 오프셋만큼 함께 이동합니다. 한쪽이 범위를 벗어나면 해당 영상은 끝/첫 프레임에 고정됩니다.
+      </p>
+    </div>
+  );
+
   if (!a || !b) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#F9FAFB] px-6 text-center">
@@ -301,6 +329,7 @@ export default function Compare() {
                 idx={idxA} onSeek={seekA}
                 alignFrame={alignA} onSetAlign={setAlignA}
                 hideScrubber={synced}
+                syncSlider={mergedSlider}
               />
               <CompareSide
                 rec={b} ranges={ranges}
@@ -309,33 +338,6 @@ export default function Compare() {
                 hideScrubber={synced}
               />
             </div>
-
-            {/* merged slider in sync mode */}
-            {synced && (
-              <div className="bg-white rounded-2xl border border-orange-200 p-4 mt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold text-[#1A1A2E]">동기화 슬라이더</p>
-                  <p className="text-[11px] text-gray-400">
-                    영상1 #{masterIdx + 1}/{totalA} · 영상2 #{clamp(idxB, totalB) + 1}/{totalB}
-                  </p>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={Math.max(0, totalA - 1)}
-                  value={masterIdx}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setIdxA(v);
-                    setIdxB(clamp(v + offset, totalB));
-                  }}
-                  className="w-full accent-[#FF6B4A] cursor-pointer"
-                />
-                <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">
-                  슬라이더를 움직이면 영상1은 그대로, 영상2는 오프셋만큼 함께 이동합니다. 한쪽이 범위를 벗어나면 해당 영상은 끝/첫 프레임에 고정됩니다.
-                </p>
-              </div>
-            )}
           </>
         ) : (
           <CompareOverlay a={a} b={b} />
