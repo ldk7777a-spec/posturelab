@@ -1,0 +1,191 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { detectGolfEvents } from "@/lib/golfDetect";
+
+// GolfDB 8-phase gallery. Address/Finish are user-designated; the 6 inner
+// phases are auto-detected within [address, finish] then finalized via a
+// 7-thumbnail (±3) selector. No traffic lights — no normal-range dataset
+// exists for golf (see context-notes 결정 2).
+const PHASES = [
+  { key: "address", label: "어드레스" },
+  { key: "toeUp", label: "토업" },
+  { key: "midBack", label: "백스윙 중간" },
+  { key: "top", label: "탑" },
+  { key: "midDown", label: "다운스윙 중간" },
+  { key: "impact", label: "임팩트" },
+  { key: "midFollow", label: "팔로스루 중간" },
+  { key: "finish", label: "피니시" },
+];
+
+function ThumbRow({ frames, center, selected, onSelect, radius = 3 }) {
+  if (center == null) {
+    return (
+      <p className="text-xs text-gray-400 py-2 leading-relaxed">
+        이 단계는 자동 감지하지 못했습니다. 아래 “현재 프레임으로 지정” 버튼으로 직접 지정하세요.
+      </p>
+    );
+  }
+  const idxs = [];
+  for (let k = center - radius; k <= center + radius; k++) {
+    if (k < 0 || k >= frames.length) continue;
+    idxs.push(k);
+  }
+  return (
+    <div className="flex gap-1.5 overflow-x-auto pb-1">
+      {idxs.map((i) => {
+        const isSel = selected === i;
+        const isCenter = i === center;
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onSelect(i)}
+            className={`relative shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+              isSel ? "border-[#FF6B4A] ring-2 ring-orange-200" : isCenter ? "border-gray-400" : "border-gray-200"
+            }`}
+            style={{ width: 60, height: 60 }}
+            aria-label={`프레임 ${i + 1}`}
+          >
+            {frames[i] && frames[i].image ? (
+              <img src={frames[i].image} alt={`#${i + 1}`} className="w-full h-full object-cover" />
+            ) : (
+              <span className="w-full h-full flex items-center justify-center text-[11px] font-semibold text-gray-500 bg-gray-50">
+                #{i + 1}
+              </span>
+            )}
+            <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] font-semibold py-0.5 text-center">
+              {i + 1}
+            </span>
+            {isCenter && (
+              <span className="absolute top-0.5 right-0.5 bg-gray-800/80 text-white text-[8px] px-1 rounded">추천</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function WindowMarker({ title, frame, onSet, onSeek, currentIdx }) {
+  return (
+    <div className="bg-gray-50 rounded-lg p-3">
+      <p className="text-xs font-bold text-[#1A1A2E] mb-1">{title}</p>
+      <p className="text-[11px] text-gray-400 mb-2">
+        {frame == null ? "미지정 — 영상을 이동한 뒤 현재 프레임으로 지정하세요." : `#${frame + 1} 프레임`}
+      </p>
+      <div className="flex gap-1.5">
+        <button
+          onClick={() => onSeek(frame != null ? frame : currentIdx)}
+          disabled={frame == null}
+          className="text-[11px] font-semibold text-[#FF6B4A] border border-orange-200 rounded-md px-2 py-1 bg-white hover:bg-orange-50 disabled:opacity-40 transition-colors"
+        >
+          이동
+        </button>
+        <button
+          onClick={onSet}
+          className="text-[11px] font-semibold text-white bg-[#FF6B4A] rounded-md px-2 py-1 hover:bg-[#e55a3a] transition-colors"
+        >
+          현재 프레임(#{currentIdx + 1}) 지정
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function GolfComparison({ frames, currentIdx, onSeek }) {
+  const [address, setAddress] = useState(null);
+  const [finish, setFinish] = useState(null);
+  const [active, setActive] = useState("address");
+  const [selected, setSelected] = useState({});
+
+  const detected = useMemo(() => detectGolfEvents(frames, address, finish), [frames, address, finish]);
+
+  useEffect(() => {
+    setSelected({
+      address,
+      finish,
+      toeUp: detected.toeUp,
+      midBack: detected.midBack,
+      top: detected.top,
+      midDown: detected.midDown,
+      impact: detected.impact,
+      midFollow: detected.midFollow,
+    });
+  }, [detected, address, finish]);
+
+  const ready = address != null && finish != null;
+  const activeMeta = PHASES.find((p) => p.key === active);
+  const center =
+    active === "address" ? address : active === "finish" ? finish : detected[active];
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-sm font-bold text-[#1A1A2E]">골프 스윙 8단계</p>
+        <span className="text-[10px] font-semibold text-gray-400">GolfDB</span>
+      </div>
+      <p className="text-[11px] text-gray-400 mb-4 leading-relaxed">
+        정상범위 기준 데이터가 없어 수치/그래프로만 제공합니다. 어드레스·피니시 두 프레임을 지정하면
+        나머지 6단계를 자동 추천합니다. 추천은 시작점이며, 각 단계의 썸네일(±3)에서 최종 확정하세요.
+      </p>
+
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <WindowMarker title="어드레스 (시작)" frame={address} onSet={() => setAddress(currentIdx)} onSeek={onSeek} currentIdx={currentIdx} />
+        <WindowMarker title="피니시 (끝)" frame={finish} onSet={() => setFinish(currentIdx)} onSeek={onSeek} currentIdx={currentIdx} />
+      </div>
+
+      {!ready ? (
+        <p className="text-xs text-gray-400 text-center py-4">
+          어드레스·피니시 두 프레임을 지정하면 8단계 추천이 시작됩니다.
+        </p>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {PHASES.map((p, idx) => (
+              <button
+                key={p.key}
+                onClick={() => setActive(p.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  active === p.key
+                    ? "bg-[#FF6B4A] text-white border-[#FF6B4A]"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-[#FF6B4A]"
+                }`}
+              >
+                {idx + 1}. {p.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold text-[#1A1A2E]">{activeMeta.label}</p>
+              <p className="text-[11px] text-gray-400">
+                {selected[active] != null ? `선택 #${selected[active] + 1} / ${frames.length}` : "선택 전"}
+              </p>
+            </div>
+            <ThumbRow
+              frames={frames}
+              center={center}
+              selected={selected[active]}
+              onSelect={(i) => setSelected((s) => ({ ...s, [active]: i }))}
+            />
+            <div className="flex flex-wrap gap-2 mt-3">
+              <button
+                onClick={() => onSeek(selected[active] != null ? selected[active] : center != null ? center : currentIdx)}
+                disabled={selected[active] == null && center == null}
+                className="text-xs font-semibold text-[#FF6B4A] border border-orange-200 rounded-lg px-3 py-1.5 bg-white hover:bg-orange-50 disabled:opacity-40 transition-colors"
+              >
+                프레임 이동
+              </button>
+              <button
+                onClick={() => setSelected((s) => ({ ...s, [active]: currentIdx }))}
+                className="text-xs font-semibold text-white bg-[#FF6B4A] rounded-lg px-3 py-1.5 hover:bg-[#e55a3a] transition-colors"
+              >
+                현재 프레임(#{currentIdx + 1})으로 지정
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

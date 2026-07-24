@@ -9,6 +9,7 @@ import {
 } from "@/lib/metricRanges";
 import AngleGraph from "@/components/analysis/AngleGraph";
 import ObpComparison from "@/components/analysis/ObpComparison";
+import GolfComparison from "@/components/analysis/GolfComparison";
 import { base44 } from "@/api/base44Client";
 
 function summarize(values) {
@@ -260,7 +261,7 @@ export default function FrameAnalysis() {
           </div>
           {sport === "golf" && (
             <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
-              골프 스윙 8단계 자동 감지는 곧 추가됩니다. 지금은 범용 관절 분석을 먼저 확인하세요.
+              어드레스·피니시를 지정하면 8단계를 자동 추천합니다. 추천은 시작점이며 썸네일로 직접 조정하세요.
             </p>
           )}
         </div>
@@ -438,6 +439,13 @@ export default function FrameAnalysis() {
             <div className="lg:col-span-2">
               <AngleGraph frames={frames} selectedIdx={safeIdx} onSelectFrame={setIdx} />
             </div>
+
+            {/* 8g. 골프 스윙 8단계 (골프 선택 시) */}
+            {sport === "golf" && obpMode === "none" && (
+              <div className="lg:col-span-2">
+                <GolfComparison frames={frames} currentIdx={safeIdx} onSeek={setIdx} />
+              </div>
+            )}
 
             {/* 8. OBP 참고 비교 (투구/스윙 선택 시) */}
             {obpMode !== "none" && (
