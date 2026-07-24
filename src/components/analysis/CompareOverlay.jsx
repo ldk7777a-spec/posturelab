@@ -1,31 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, AlignCenter, Link2, Unlink } from "lucide-react";
+import { ChevronLeft, ChevronRight, Link2, Unlink, MapPin, TriangleAlert } from "lucide-react";
 import { frameAngles } from "@/lib/biomechanics";
 import { ANGLE_METRICS } from "@/lib/metricRanges";
 import { renderOverlaySkeleton } from "@/lib/skeletonOverlay";
-import { detectFootPlant, detectLoad, detectFirstMove } from "@/lib/obpDetect";
 
 const CANVAS_SIZE = 600;
 const COLOR_A = "#2C7BE5"; // 영상1 - 파랑
 const COLOR_B = "#FF6B4A"; // 영상2 - 주황
 
-const ALIGN_OPTIONS = [
-  { key: "footplant", label: "발 착지" },
-  { key: "load", label: "로드" },
-  { key: "firstmove", label: "첫 움직임" },
-];
-
-function detectEvent(frames, event) {
-  if (event === "footplant") return detectFootPlant(frames);
-  if (event === "load") return detectLoad(frames);
-  if (event === "firstmove") return detectFirstMove(frames);
-  return null;
-}
-
-const clampIdx = (v, total) => (total <= 0 ? 0 : Math.max(0, Math.min(total - 1, v)));
+const clamp = (v, total) => (total <= 0 ? 0 : Math.max(0, Math.min(total - 1, v)));
 
 function Scrubber({ label, sub, idx, setIdx, total }) {
-  const safe = clampIdx(idx, total);
+  const safe = clamp(idx, total);
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-3">
       <div className="flex items-center justify-between mb-1.5">
@@ -65,38 +51,20 @@ function Scrubber({ label, sub, idx, setIdx, total }) {
   );
 }
 
-// Per-video key-event markers with manual override.
-function EventMarkers({ side, events, setEvents, current, total }) {
-  const cur = clampIdx(current, total);
+// Per-video alignment-point button (manual only — no auto recommendation).
+function AlignPointBtn({ frame, current, onSet }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-3">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">핵심 시점 (수동 지정 가능)</p>
-        <span className="text-[10px] text-gray-400 tabular-nums">현재 #{cur + 1}</span>
-      </div>
-      <div className="grid grid-cols-3 gap-1.5">
-        {ALIGN_OPTIONS.map((o) => {
-          const val = events[side]?.[o.key];
-          return (
-            <div key={o.key} className="flex flex-col items-center gap-1">
-              <button
-                onClick={() => setEvents((prev) => ({
-                  ...prev,
-                  [side]: { ...prev[side], [o.key]: cur },
-                }))}
-                className="w-full text-[11px] font-semibold border border-gray-200 rounded-lg px-1 py-1.5 text-gray-600 hover:border-[#FF6B4A] hover:text-[#FF6B4A] transition-colors"
-                title="현재 프레임을 이 시점으로 지정"
-              >
-                {o.label} 지정
-              </button>
-              <span className={`text-[10px] tabular-nums ${val != null ? "text-[#FF6B4A] font-bold" : "text-gray-300"}`}>
-                {val != null ? `#${val + 1}` : "—"}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <button
+      onClick={() => onSet(current)}
+      className={`w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-2 border transition-colors ${
+        frame != null
+          ? "bg-[#FF6B4A]/10 text-[#FF6B4A] border-[#FF6B4A]/40"
+          : "text-gray-600 border-gray-200 hover:border-[#FF6B4A] hover:text-[#FF6B4A]"
+      }`}
+    >
+      <MapPin className="w-3.5 h-3.5" />
+      {frame != null ? `정렬점 지정됨 · #${frame + 1}` : "이 프레임을 정렬점으로 지정"}
+    </button>
   );
 }
 
@@ -104,33 +72,19 @@ export default function CompareOverlay({ a, b }) {
   const canvasRef = useRef(null);
   const framesA = a?.frames || [];
   const framesB = b?.frames || [];
+  const totalA = framesA.length;
+  const totalB = framesB.length;
   const [idxA, setIdxA] = useState(0);
   const [idxB, setIdxB] = useState(0);
-  const [alignEvent, setAlignEvent] = useState("footplant");
-  // user-overridable key-event frames per video
-  const [events, setEvents] = useState({
-    a: { footplant: null, load: null, firstmove: null },
-    b: { footplant: null, load: null, firstmove: null },
-  });
-  const [offset, setOffset] = useState(0); // idxB - idxA fixed at align time, used when linked
-  const [linked, setLinked] = useState(false);
+  const [alignA, setAlignA] = useState(null);
+  const [alignB, setAlignB] = useState(null);
+  const [synced, setSynced] = useState(false);
 
-  // seed with auto-detected events on mount / when frames change
-  useEffect(() => {
-    if (!framesA.length || !framesB.length) return;
-    setEvents({
-      a: { footplant: detectFootPlant(framesA), load: detectLoad(framesA), firstmove: detectFirstMove(framesA) },
-      b: { footplant: detectFootPlant(framesB), load: detectLoad(framesB), firstmove: detectFirstMove(framesB) },
-    });
-  }, [framesA, framesB]);
+  const syncEnabled = alignA != null && alignB != null;
+  const offset = syncEnabled ? alignB - alignA : 0;
 
-  const safeA = clampIdx(idxA, framesA.length);
-  const safeB = clampIdx(idxB, framesB.length);
-
-  const getEventFrame = (side, key) => {
-    const v = events[side]?.[key];
-    return v != null ? v : detectEvent(side === "a" ? framesA : framesB, key);
-  };
+  const safeA = clamp(idxA, totalA);
+  const safeB = clamp(idxB, totalB);
 
   // draw overlay
   useEffect(() => {
@@ -146,21 +100,33 @@ export default function CompareOverlay({ a, b }) {
   }, [safeA, safeB, framesA, framesB]);
 
   const seekA = (i) => {
-    setIdxA(clampIdx(i, framesA.length));
-    if (linked) setIdxB(clampIdx(i + offset, framesB.length));
+    const v = clamp(i, totalA);
+    setIdxA(v);
+    if (synced) setIdxB(clamp(v + offset, totalB));
   };
   const seekB = (i) => {
-    setIdxB(clampIdx(i, framesB.length));
-    if (linked) setIdxA(clampIdx(i - offset, framesA.length));
+    const v = clamp(i, totalB);
+    setIdxB(v);
+    if (synced) setIdxA(clamp(v - offset, totalA));
   };
 
-  const handleAlign = () => {
-    const ia = getEventFrame("a", alignEvent);
-    const ib = getEventFrame("b", alignEvent);
-    if (ia != null) setIdxA(clampIdx(ia, framesA.length));
-    if (ib != null) setIdxB(clampIdx(ib, framesB.length));
-    if (ia != null && ib != null) setOffset(ib - ia);
+  const toggleSync = () => {
+    if (!syncEnabled) return;
+    setSynced((prev) => {
+      const next = !prev;
+      if (next) {
+        setIdxA(clamp(alignA, totalA));
+        setIdxB(clamp(alignA + offset, totalB));
+      }
+      return next;
+    });
   };
+
+  const handleMaster = (v) => {
+    setIdxA(v);
+    setIdxB(clamp(v + offset, totalB));
+  };
+  const masterIdx = clamp(idxA, totalA);
 
   const angA = frameAngles(framesA[safeA]?.landmarks);
   const angB = frameAngles(framesB[safeB]?.landmarks);
@@ -181,8 +147,17 @@ export default function CompareOverlay({ a, b }) {
 
   return (
     <div className="space-y-4">
+      {!syncEnabled && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <TriangleAlert className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-[11px] text-amber-700 leading-relaxed">
+            정렬점이 지정되지 않았습니다. 정렬 없이 겹치면 서로 다른 동작 구간이 겹쳐져 비교가 무의미합니다. 아래에서 각 영상의 정렬점을 지정한 뒤 동기화하세요.
+          </p>
+        </div>
+      )}
+
       <p className="text-[11px] text-gray-400 leading-relaxed">
-        카메라 위치와 각도가 같을 때 비교가 정확합니다. 자동 감지 시점이 어긋나면 아래 “지정” 버튼으로 각 시점을 직접 맞춘 뒤 정렬·연동해 보세요.
+        카메라 위치와 각도가 같을 때 비교가 정확합니다. 각 영상에서 같은 시점의 프레임을 정렬점으로 지정하고 동기화를 켜면 두 슬라이더가 하나로 합쳐집니다.
       </p>
 
       {/* overlay canvas with legend */}
@@ -206,50 +181,65 @@ export default function CompareOverlay({ a, b }) {
         </div>
       </div>
 
-      {/* align control + link toggle */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <label className="text-xs text-gray-500">시점 정렬:</label>
-        <select
-          value={alignEvent}
-          onChange={(e) => setAlignEvent(e.target.value)}
-          className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 font-semibold focus:outline-none focus:border-[#FF6B4A]"
-        >
-          {ALIGN_OPTIONS.map((o) => (
-            <option key={o.key} value={o.key}>{o.label}</option>
-          ))}
-        </select>
+      {/* sync control bar */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-3 flex items-center gap-3 flex-wrap">
+        <p className="text-xs text-gray-500">
+          정렬점: {alignA != null ? `영상1 #${alignA + 1}` : "영상1 미지정"} · {alignB != null ? `영상2 #${alignB + 1}` : "영상2 미지정"}
+        </p>
+        {syncEnabled && (
+          <span className="text-[11px] font-semibold text-gray-400">오프셋 {offset > 0 ? `+${offset}` : offset} 프레임</span>
+        )}
         <button
-          onClick={handleAlign}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#1A1A2E] rounded-lg px-3 py-1.5 hover:bg-[#2a2a45] transition-colors"
-        >
-          <AlignCenter className="w-3.5 h-3.5" />
-          {ALIGN_OPTIONS.find((o) => o.key === alignEvent)?.label} 시점으로 정렬
-        </button>
-        <button
-          onClick={() => setLinked((l) => !l)}
-          className={`inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 border transition-colors ${
-            linked
+          onClick={toggleSync}
+          disabled={!syncEnabled}
+          className={`ml-auto inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 border transition-colors ${
+            synced
               ? "bg-[#FF6B4A] text-white border-[#FF6B4A]"
-              : "text-gray-600 border-gray-200 hover:border-[#FF6B4A] hover:text-[#FF6B4A]"
+              : syncEnabled
+                ? "text-gray-600 border-gray-200 hover:border-[#FF6B4A] hover:text-[#FF6B4A]"
+                : "text-gray-300 border-gray-100 cursor-not-allowed"
           }`}
-          title="정렬 후 두 슬라이더를 같은 위상으로 연동"
+          title={syncEnabled ? "정렬점 기준으로 슬라이더를 하나로 합쳐 동기화" : "두 영상 모두 정렬점을 지정해야 동기화할 수 있어요"}
         >
-          {linked ? <Unlink className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
-          {linked ? "연동 끄기" : "프레임 연동"}
+          {synced ? <Unlink className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
+          {synced ? "동기화 끄기" : "동기화"}
         </button>
       </div>
 
-      {/* per-video scrubbers + event markers */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Scrubber label="영상1" sub={a?.category} idx={idxA} setIdx={seekA} total={framesA.length} />
-          <EventMarkers side="a" events={events} setEvents={setEvents} current={safeA} total={framesA.length} />
+      {synced ? (
+        /* merged single slider */
+        <div className="bg-white rounded-2xl border border-orange-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-[#1A1A2E]">동기화 슬라이더</p>
+            <p className="text-[11px] text-gray-400">
+              영상1 #{masterIdx + 1}/{totalA} · 영상2 #{clamp(idxB, totalB) + 1}/{totalB}
+            </p>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={Math.max(0, totalA - 1)}
+            value={masterIdx}
+            onChange={(e) => handleMaster(Number(e.target.value))}
+            className="w-full accent-[#FF6B4A] cursor-pointer"
+          />
+          <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">
+            슬라이더를 움직이면 영상1은 그대로, 영상2는 오프셋만큼 함께 이동합니다. 한쪽이 범위를 벗어나면 해당 영상은 끝/첫 프레임에 고정됩니다.
+          </p>
         </div>
-        <div className="space-y-2">
-          <Scrubber label="영상2" sub={b?.category} idx={idxB} setIdx={seekB} total={framesB.length} />
-          <EventMarkers side="b" events={events} setEvents={setEvents} current={safeB} total={framesB.length} />
+      ) : (
+        /* two independent scrubbers + per-video alignment buttons */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Scrubber label="영상1" sub={a?.category} idx={idxA} setIdx={seekA} total={totalA} />
+            <AlignPointBtn frame={alignA} current={safeA} onSet={setAlignA} />
+          </div>
+          <div className="space-y-2">
+            <Scrubber label="영상2" sub={b?.category} idx={idxB} setIdx={seekB} total={totalB} />
+            <AlignPointBtn frame={alignB} current={safeB} onSet={setAlignB} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* joint angle difference */}
       <div className="bg-white rounded-2xl border border-gray-100 p-4">
