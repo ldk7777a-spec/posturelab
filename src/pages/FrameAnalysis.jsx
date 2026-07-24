@@ -75,6 +75,7 @@ export default function FrameAnalysis() {
   const canvasRef = useRef(null);
   const imgCache = useRef([]);
   const videoElRef = useRef(null);
+  const seekTokenRef = useRef(0);
 
   // load coach ranges (falls back to defaults if unavailable)
   useEffect(() => {
@@ -114,15 +115,22 @@ export default function FrameAnalysis() {
     return () => { cancelled = true; };
   }, [frames, videoMode]);
 
-  // Mode A: draw current frame + skeleton from preloaded image
+  // Mode A: draw current frame + skeleton from preloaded image.
+  // If the selected frame isn't decoded yet, clear the canvas (so the
+  // previous frame doesn't bleed through) and show a loading overlay;
+  // this effect re-runs when `loaded` increments and draws once ready.
   useEffect(() => {
     if (videoMode) return;
     const im = imgCache.current[idx];
     const canvas = canvasRef.current;
-    if (!im || !canvas) return;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!im) {
+      if (canvas.width) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
     canvas.width = im.naturalWidth;
     canvas.height = im.naturalHeight;
-    const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(im, 0, 0, canvas.width, canvas.height);
     drawSkeleton(ctx, frames[idx]?.landmarks, canvas.width, canvas.height, {
@@ -131,40 +139,47 @@ export default function FrameAnalysis() {
     });
   }, [idx, loaded, frames, videoMode]);
 
-  // Mode B: draw by seeking the stored original video and overlaying saved landmarks
+  // Mode B: draw by seeking the stored original video and overlaying saved landmarks.
+  // A seek token guards against stale "seeked" events from earlier scrubs overwriting
+  // the frame the user actually landed on.
   useEffect(() => {
     if (!videoMode) return;
     const canvas = canvasRef.current;
     const video = videoElRef.current;
     if (!canvas || !video || !videoReady || !frames.length) return;
 
-    let cancelled = false;
+    const token = ++seekTokenRef.current;
     const fd = frames[idx];
     const render = () => {
-      if (cancelled) return;
+      if (token !== seekTokenRef.current) return;
       const w = video.videoWidth || fd.width || 480;
       const h = video.videoHeight || fd.height || 640;
-      canvas.width = w;
-      canvas.height = h;
+      if (canvas.width !== w) canvas.width = w;
+      if (canvas.height !== h) canvas.height = h;
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, w, h);
       try { ctx.drawImage(video, 0, 0, w, h); } catch {}
       drawSkeleton(ctx, fd.landmarks, w, h, { nodeColor: "#FF1F1F", lineColor: "#1E40AF" });
     };
+
+    const dur = isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+    let t = fd.time != null ? fd.time : (frames.length > 1 ? (dur * idx) / (frames.length - 1) : 0);
+    if (dur) t = Math.max(0, Math.min(t, dur - 0.001));
+    else t = Math.max(0, t);
+
     const onSeeked = () => render();
-    video.addEventListener("seeked", onSeeked, { once: true });
-    try {
-      const dur = isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
-      const t = fd.time != null ? fd.time : (frames.length > 1 ? (dur * idx) / (frames.length - 1) : 0);
-      video.currentTime = Math.max(0, Math.min(t, (dur || t) - 0.001));
-    } catch {
+    let attached = false;
+    if (Math.abs(video.currentTime - t) < 0.016) {
       render();
+    } else {
+      attached = true;
+      video.addEventListener("seeked", onSeeked, { once: true });
+      try { video.currentTime = t; } catch { render(); }
     }
-    const fallback = setTimeout(render, 120);
+    const fallback = setTimeout(render, 250);
     return () => {
-      cancelled = true;
       clearTimeout(fallback);
-      video.removeEventListener("seeked", onSeeked);
+      if (attached) video.removeEventListener("seeked", onSeeked);
     };
   }, [idx, frames, videoMode, videoReady]);
 
@@ -303,6 +318,12 @@ export default function FrameAnalysis() {
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/40">
                     <Loader2 className="w-7 h-7 text-white animate-spin" />
                     <p className="text-xs text-white/80">원본 영상 로드 중...</p>
+                  </div>
+                )}
+                {!videoMode && !imgCache.current[safeIdx] && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/40">
+                    <Loader2 className="w-7 h-7 text-white animate-spin" />
+                    <p className="text-xs text-white/80">프레임 불러오는 중...</p>
                   </div>
                 )}
               </div>
