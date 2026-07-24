@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { ArrowLeft, Loader2, ChevronLeft, ChevronRight, Link2, Unlink, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { drawSkeleton } from "@/lib/poseDraw";
 import { frameAngles } from "@/lib/biomechanics";
 import {
@@ -21,7 +21,7 @@ function MetricCard({ label, value, rating }) {
   );
 }
 
-function CompareSide({ rec, ranges, idx, onSeek, alignFrame, onSetAlign, hideScrubber, syncSlider }) {
+function CompareSide({ rec, ranges, idx, onSeek }) {
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -89,57 +89,37 @@ function CompareSide({ rec, ranges, idx, onSeek, alignFrame, onSetAlign, hideScr
         )}
       </div>
 
-      {/* frame label + scrubber (hidden in sync mode — merged slider is shown at top level) */}
+      {/* frame label + independent scrubber */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <p className="text-xs text-gray-500">프레임 {safeIdx + 1} / {frames.length}</p>
-          {!hideScrubber && (
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => onSeek(Math.max(0, safeIdx - 1))}
-                disabled={safeIdx === 0}
-                className="w-7 h-7 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-colors"
-                aria-label="이전 프레임"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => onSeek(Math.min(frames.length - 1, safeIdx + 1))}
-                disabled={safeIdx === frames.length - 1}
-                className="w-7 h-7 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-colors"
-                aria-label="다음 프레임"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => onSeek(Math.max(0, safeIdx - 1))}
+              disabled={safeIdx === 0}
+              className="w-7 h-7 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+              aria-label="이전 프레임"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => onSeek(Math.min(frames.length - 1, safeIdx + 1))}
+              disabled={safeIdx === frames.length - 1}
+              className="w-7 h-7 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+              aria-label="다음 프레임"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
-        {!hideScrubber && (
-          <input
-            type="range"
-            min={0}
-            max={frames.length - 1}
-            value={safeIdx}
-            onChange={(e) => onSeek(Number(e.target.value))}
-            className="w-full accent-[#FF6B4A] cursor-pointer"
-          />
-        )}
-        {hideScrubber && syncSlider}
-      </div>
-
-      {/* alignment point (manual only) */}
-      <div>
-        <button
-          onClick={() => onSetAlign(safeIdx)}
-          className={`w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-2 border transition-colors ${
-            alignFrame != null
-              ? "bg-[#FF6B4A]/10 text-[#FF6B4A] border-[#FF6B4A]/40"
-              : "text-gray-600 border-gray-200 hover:border-[#FF6B4A] hover:text-[#FF6B4A]"
-          }`}
-        >
-          <MapPin className="w-3.5 h-3.5" />
-          {alignFrame != null ? `정렬점 지정됨 · #${alignFrame + 1}` : "이 프레임을 정렬점으로 지정"}
-        </button>
+        <input
+          type="range"
+          min={0}
+          max={frames.length - 1}
+          value={safeIdx}
+          onChange={(e) => onSeek(Number(e.target.value))}
+          className="w-full accent-[#FF6B4A] cursor-pointer"
+        />
       </div>
 
       {/* joint angles for this frame */}
@@ -177,12 +157,6 @@ export default function Compare() {
   const totalB = b?.frames?.length || 0;
   const [idxA, setIdxA] = useState(0);
   const [idxB, setIdxB] = useState(0);
-  const [alignA, setAlignA] = useState(null);
-  const [alignB, setAlignB] = useState(null);
-  const [synced, setSynced] = useState(false);
-
-  const syncEnabled = alignA != null && alignB != null;
-  const offset = syncEnabled ? alignB - alignA : 0;
 
   useEffect(() => {
     base44.entities.RangeSetting
@@ -203,60 +177,8 @@ export default function Compare() {
       .catch(() => {});
   }, []);
 
-  // keep synced idx within the matched window when totalB changes etc.
-  const seekA = (i) => {
-    const v = clamp(i, totalA);
-    setIdxA(v);
-    if (synced) setIdxB(clamp(v + offset, totalB));
-  };
-  const seekB = (i) => {
-    const v = clamp(i, totalB);
-    setIdxB(v);
-    if (synced) setIdxA(clamp(v - offset, totalA));
-  };
-
-  const toggleSync = () => {
-    if (!syncEnabled) return;
-    setSynced((prev) => {
-      const next = !prev;
-      if (next) {
-        // snap both videos to the alignment points
-        setIdxA(clamp(alignA, totalA));
-        setIdxB(clamp(alignA + offset, totalB));
-      }
-      return next;
-    });
-  };
-
-  // master (left) slider value for sync mode
-  const masterIdx = clamp(idxA, totalA);
-
-  // merged single slider rendered inside the left side's scrubber slot
-  const mergedSlider = synced && (
-    <div className="bg-white rounded-2xl border border-orange-200 p-3">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-bold text-[#1A1A2E]">동기화 슬라이더</p>
-        <p className="text-[11px] text-gray-400">
-          영상1 #{masterIdx + 1}/{totalA} · 영상2 #{clamp(idxB, totalB) + 1}/{totalB}
-        </p>
-      </div>
-      <input
-        type="range"
-        min={0}
-        max={Math.max(0, totalA - 1)}
-        value={masterIdx}
-        onChange={(e) => {
-          const v = Number(e.target.value);
-          setIdxA(v);
-          setIdxB(clamp(v + offset, totalB));
-        }}
-        className="w-full accent-[#FF6B4A] cursor-pointer"
-      />
-      <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">
-        슬라이더를 움직이면 영상1은 그대로, 영상2는 오프셋만큼 함께 이동합니다. 한쪽이 범위를 벗어나면 해당 영상은 끝/첫 프레임에 고정됩니다.
-      </p>
-    </div>
-  );
+  const seekA = (i) => setIdxA(clamp(i, totalA));
+  const seekB = (i) => setIdxB(clamp(i, totalB));
 
   if (!a || !b) {
     return (
@@ -297,48 +219,10 @@ export default function Compare() {
 
       <div className="max-w-5xl mx-auto px-4 py-6">
         {mode === "side" ? (
-          <>
-            {/* sync control bar (side-by-side) */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-3 mb-4 flex items-center gap-3 flex-wrap">
-              <p className="text-xs text-gray-500">
-                정렬점: {alignA != null ? `영상1 #${alignA + 1}` : "영상1 미지정"} · {alignB != null ? `영상2 #${alignB + 1}` : "영상2 미지정"}
-              </p>
-              {syncEnabled && (
-                <span className="text-[11px] font-semibold text-gray-400">오프셋 {offset > 0 ? `+${offset}` : offset} 프레임</span>
-              )}
-              <button
-                onClick={toggleSync}
-                disabled={!syncEnabled}
-                className={`ml-auto inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 border transition-colors ${
-                  synced
-                    ? "bg-[#FF6B4A] text-white border-[#FF6B4A]"
-                    : syncEnabled
-                      ? "text-gray-600 border-gray-200 hover:border-[#FF6B4A] hover:text-[#FF6B4A]"
-                      : "text-gray-300 border-gray-100 cursor-not-allowed"
-                }`}
-                title={syncEnabled ? "정렬점 기준으로 슬라이더를 하나로 합쳐 동기화" : "두 영상 모두 정렬점을 지정해야 동기화할 수 있어요"}
-              >
-                {synced ? <Unlink className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
-                {synced ? "동기화 끄기" : "동기화"}
-              </button>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4 items-start">
-              <CompareSide
-                rec={a} ranges={ranges}
-                idx={idxA} onSeek={seekA}
-                alignFrame={alignA} onSetAlign={setAlignA}
-                hideScrubber={synced}
-                syncSlider={mergedSlider}
-              />
-              <CompareSide
-                rec={b} ranges={ranges}
-                idx={idxB} onSeek={seekB}
-                alignFrame={alignB} onSetAlign={setAlignB}
-                hideScrubber={synced}
-              />
-            </div>
-          </>
+          <div className="flex flex-col md:flex-row gap-4 items-start">
+            <CompareSide rec={a} ranges={ranges} idx={idxA} onSeek={seekA} />
+            <CompareSide rec={b} ranges={ranges} idx={idxB} onSeek={seekB} />
+          </div>
         ) : (
           <CompareOverlay a={a} b={b} />
         )}
