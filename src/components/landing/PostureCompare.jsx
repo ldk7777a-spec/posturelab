@@ -2,8 +2,8 @@ import React, { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useLang, T } from "@/lib/LanguageContext";
 
-const BEFORE_IMAGE = "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/4e36975e3_Posture_analysis_BEFORE_image_-_A_Caucasian_woman_-1782659303218.png";
-const AFTER_IMAGE = "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/7f309043d_Posture_analysis_AFTER_image_-_Transform_this_imag-1782659305647.png";
+const BEFORE_IMAGE = "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/42c318558_pilates_swan_dive_before.webp";
+const AFTER_IMAGE = "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/41677a7b2_pilates_swan_dive_after.webp";
 
 export default function PostureCompare() {
   const { lang } = useLang();
@@ -124,16 +124,18 @@ export default function PostureCompare() {
             </div>
           </div>
 
-          {/* Stats row */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
+          {/* Feature badges */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
             {[
-               { label: T.compareSpineImp[lang], value: "+34%", color: "text-emerald-400" },
-               { label: T.compareShoulBal[lang], value: "+28%", color: "text-emerald-400" },
-               { label: T.compareSessions[lang], value: T.weeks[lang], color: "text-[#FF6B4A]" },
-             ].map((s) => (
-              <div key={s.label} className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-                <p className={`text-2xl font-extrabold ${s.color}`}>{s.value}</p>
-                <p className="text-xs text-gray-400 mt-1">{s.label}</p>
+              { title: T.compareFeat1[lang], desc: T.compareFeat1Desc[lang] },
+              { title: T.compareFeat2[lang], desc: T.compareFeat2Desc[lang] },
+              { title: T.compareFeat3[lang], desc: T.compareFeat3Desc[lang] },
+            ].map((s) => (
+              <div key={s.title} className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+                <span className="inline-block text-sm font-bold text-white bg-[#FF6B4A]/15 border border-[#FF6B4A]/30 px-3 py-1 rounded-full">
+                  {s.title}
+                </span>
+                <p className="text-xs text-gray-400 mt-2.5 leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>

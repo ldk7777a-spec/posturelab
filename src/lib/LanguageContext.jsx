@@ -202,6 +202,12 @@ export const T = {
   compareShoulBal:   { ko: "어깨 균형", en: "Shoulder Balance" },
   compareSessions:   { ko: "달성 기간", en: "Sessions to Achieve" },
   weeks:             { ko: "6주", en: "6 weeks" },
+  compareFeat1:      { ko: "프레임별 비교", en: "Frame-by-frame" },
+  compareFeat1Desc:  { ko: "관절 각도 변화를 프레임 단위로 확인", en: "Check joint angle changes frame by frame" },
+  compareFeat2:      { ko: "히스토리 저장", en: "Saved history" },
+  compareFeat2Desc:  { ko: "이전 분석과 언제든 다시 비교", en: "Re-compare with past analyses anytime" },
+  compareFeat3:      { ko: "종목별 기준", en: "Sport-specific references" },
+  compareFeat3Desc:  { ko: "야구·골프 등 종목에 맞춘 참고 지표", en: "Reference metrics tailored to sports like baseball/golf" },
 
   // ── Analyze page categories + misc ──────────────────────────────────────
   catSelect:    { ko: "분석 종목 선택", en: "Select a sport" },
