@@ -1,11 +1,12 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import { useLang, T } from "@/lib/LanguageContext";
 
-export default function MeasurementGrid({ images }) {
+export default function MeasurementGrid() {
   const { lang } = useLang();
-  const categories = T.measureCats[lang];
+  const cards = T.metricCards[lang];
 
   return (
     <section className="py-20 lg:py-28 bg-[#F9FAFB]">
@@ -26,45 +27,28 @@ export default function MeasurementGrid({ images }) {
           <p className="mt-4 text-gray-500 max-w-2xl mx-auto text-base">{T.measureDesc[lang]}</p>
         </motion.div>
 
-        {/* Bento Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 auto-rows-[180px] md:auto-rows-[220px]">
-          {categories.map((cat, i) => {
-            const isLarge = i === 0 || i === 5;
-            return (
-              <motion.div
-                key={cat.key}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.4, delay: i * 0.06 }}
-                className={`relative group rounded-2xl overflow-hidden cursor-pointer ${
-                isLarge ? "col-span-2" : ""}`
-                }>
-
-                <Link to={`/measurement/${cat.key}`} className="absolute inset-0 z-10" />
-                {images?.[cat.key] ?
-                <img
-                  src={images[cat.key]}
-                  alt={cat.label}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-
-
-                : <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900" />
-                }
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute inset-0 bg-[#FF6B4A]/0 group-hover:bg-[#FF6B4A]/20 transition-colors duration-300" />
-                <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5">
-                  <h3 className="text-white font-bold text-base lg:text-lg">{cat.label}</h3>
-                  <p className="text-white/70 text-xs lg:text-sm mt-0.5">{cat.sub}</p>
-                </div>
-                <div className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-white/10 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M7 17L17 7M17 7H7M17 7V17" />
-                  </svg>
-                </div>
-              </motion.div>
-            );
-          })}
+        {/* 7 tracking cards — no stock photos; factual tracking descriptions */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+          {cards.map((c, i) => (
+            <motion.div
+              key={c.key}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.4, delay: (i % 3) * 0.06 }}
+              className="relative group rounded-2xl border border-gray-100 bg-white p-6 hover:border-[#FF6B4A]/40 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all"
+            >
+              <Link to={`/measurement/${c.key}`} className="absolute inset-0 z-10" />
+              <div className="flex items-center justify-between mb-4">
+                <span className="w-8 h-8 rounded-lg bg-[#1A1A2E] text-white text-xs font-bold flex items-center justify-center">
+                  {i + 1}
+                </span>
+                <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-[#FF6B4A] group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="text-lg font-bold text-[#1A1A2E]">{c.label}</h3>
+              <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">{c.desc}</p>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>
