@@ -6,10 +6,13 @@ import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 const SPORT_LABELS = {
-  general: "일반", soccer: "축구", baseball: "야구", running: "달리기",
+  general: "일반자세", soccer: "축구", baseball: "야구", running: "달리기",
   walking: "걷기", pilates: "필라테스", yoga: "요가", golf: "골프",
-  swimming: "수영", cycling: "사이클",
+  swimming: "수영", cycling: "사이클", basketball: "농구", tennis: "테니스",
 };
+
+// category가 null(미지정)인 레코드는 '일반자세'로 표시 — 차트/목록에서 "null"이 노출되지 않도록.
+const catLabel = (cat) => (cat == null || cat === "general") ? "일반자세" : (SPORT_LABELS[cat] || cat);
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -58,7 +61,7 @@ export default function Admin() {
   const catDist = {};
   records.forEach((r) => { catDist[r.category] = (catDist[r.category] || 0) + 1; });
   const catChartData = Object.entries(catDist).map(([k, v]) => ({
-    name: SPORT_LABELS[k] || k, count: v,
+    name: catLabel(k), count: v,
   })).sort((a, b) => b.count - a.count);
 
   const filteredUsers = users.filter((u) =>
@@ -243,7 +246,7 @@ export default function Admin() {
             </div>
 
             {records.filter((r) =>
-              !search || (SPORT_LABELS[r.category] || r.category || "").includes(search)
+              !search || catLabel(r.category).includes(search)
             ).map((r) => {
               const u = users.find((u) => u.id === r.user_id);
               const hasVideo = !!(r.video_url && r.frames?.list?.length);
@@ -262,9 +265,9 @@ export default function Admin() {
                           : prev.length >= 2 ? [prev[1], r.id] : [...prev, r.id]
                       );
                     } else if (hasVideo) {
-                      navigate("/frame-analysis", { state: { videoUrl: r.video_url, framesData: r.frames.list, category: r.category, view: r.view, result: r.result, imageUrl: r.image_url } });
+                      navigate("/frame-analysis", { state: { videoUrl: r.video_url, framesData: r.frames.list, category: r.category, view: r.view, result: r.result, imageUrl: r.image_url, from: "admin" } });
                     } else {
-                      navigate("/report", { state: { result: r.result, imageUrl: r.image_url } });
+                      navigate("/report", { state: { result: r.result, imageUrl: r.image_url, from: "admin" } });
                     }
                   }}>
                   {r.image_url && (
@@ -272,7 +275,7 @@ export default function Admin() {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-[#1A1A2E]">{SPORT_LABELS[r.category] || r.category}</p>
+                      <p className="text-sm font-bold text-[#1A1A2E]">{catLabel(r.category)}</p>
                       {hasVideo && (
                         <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full">동영상</span>
                       )}

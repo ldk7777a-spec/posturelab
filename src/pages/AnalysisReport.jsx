@@ -73,6 +73,7 @@ export default function AnalysisReport() {
   const { lang } = useLang();
   const aiResult = location.state?.result;
   const imageUrl = location.state?.imageUrl;
+  const fromAdmin = location.state?.from === "admin";
 
   const isAI = !!aiResult;
   const summary = isAI ? aiResult.summary : "전반적으로 양호한 자세입니다. 흉추 후만과 좌측 어깨 비대칭에 주의가 필요합니다.";
@@ -89,9 +90,9 @@ export default function AnalysisReport() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-[#1A1A2E] text-sm font-medium transition-colors">
+          <Link to={fromAdmin ? "/admin" : "/"} className="inline-flex items-center gap-2 text-gray-500 hover:text-[#1A1A2E] text-sm font-medium transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            {T.backHome[lang]}
+            {fromAdmin ? "대시보드로 돌아가기" : T.backHome[lang]}
           </Link>
           <span className="text-sm font-bold text-[#1A1A2E]">{T.reportTitle[lang]}</span>
           <span className="text-xs text-gray-400">{isAI ? T.aiLabel[lang] : T.sampleLabel[lang]}</span>

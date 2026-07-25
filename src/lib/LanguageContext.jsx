@@ -97,7 +97,7 @@ export const T = {
   heroDemo:     { ko: "데모 예약", en: "Book a Demo" },
   badge1:       { ko: "신용카드 불필요", en: "No credit card required" },
   badge2:       { ko: "안전 & 프라이빗", en: "Secure & private" },
-  badge3:       { ko: "2,000+ 코치 사용 중", en: "Used by 2,000+ coaches" },
+  badge3:       { ko: "150+ 코치 사용 중", en: "Used by 150+ coaches" },
   // MeasurementDetail page
   measuredParams: { ko: "측정 파라미터",          en: "Measured Parameters" },
   howMeasured:    { ko: "측정 방법",              en: "How It's Measured" },
@@ -188,8 +188,8 @@ export const T = {
 
   // ── Final CTA ───────────────────────────────────────────────────────────
   finalCTA: {
-    ko: { title: "분석을 시작하세요", desc: "2,000+ 코치·선수가 AI 인사이트로 동작을 개선하고 있습니다.", start: "무료 체험 시작", demo: "데모 예약" },
-    en: { title: "Start your analysis", desc: "Join 2,000+ coaches and athletes already improving movement with AI-powered insights.", start: "Start Free Trial", demo: "Book a Demo" },
+    ko: { title: "분석을 시작하세요", desc: "150+ 코치·선수가 AI 인사이트로 동작을 개선하고 있습니다.", start: "무료 체험 시작", demo: "데모 예약" },
+    en: { title: "Start your analysis", desc: "Join 150+ coaches and athletes already improving movement with AI-powered insights.", start: "Start Free Trial", demo: "Book a Demo" },
   },
 
   // ── Posture compare ──────────────────────────────────────────────────────

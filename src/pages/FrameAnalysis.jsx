@@ -63,6 +63,7 @@ export default function FrameAnalysis() {
   const [contactFrame, setContactFrame] = useState(null);
   const [sport, setSport] = useState(state?.category || null);
   const [recordId] = useState(state?.recordId || null);
+  const from = state?.from; // "admin" 등 — 뒤로 가기 대상 결정
 
   const changeSport = async (next) => {
     setSport(next);
@@ -240,7 +241,7 @@ export default function FrameAnalysis() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-md lg:max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
-          <Link to={videoMode ? "/mypage" : "/analyze"} className="text-gray-400 hover:text-[#1A1A2E] transition-colors">
+          <Link to={from === "admin" ? "/admin" : (videoMode ? "/mypage" : "/analyze")} className="text-gray-400 hover:text-[#1A1A2E] transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
@@ -248,6 +249,14 @@ export default function FrameAnalysis() {
             <p className="text-xs text-gray-400">관절 각도 추적 · {frames.length}프레임</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            {from === "admin" && (
+              <Link
+                to="/admin"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-[#FF6B4A] bg-orange-50 px-2.5 py-1.5 rounded-full hover:bg-orange-100 transition-colors"
+              >
+                대시보드로
+              </Link>
+            )}
             <Link
               to="/range-settings"
               className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 bg-gray-50 px-2.5 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
