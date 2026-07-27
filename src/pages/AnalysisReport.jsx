@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useLang, T } from "@/lib/LanguageContext";
-import { ArrowLeft, AlertTriangle, ChevronDown, ChevronUp, Camera } from "lucide-react";
+import { ArrowLeft, AlertTriangle, ChevronDown, ChevronUp, Camera, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ── Category accordion ────────────────────────────────────────────────────────
@@ -81,10 +81,6 @@ export default function AnalysisReport() {
   const priorities = isAI ? aiResult.topPriorities : [];
   const coachingGuide = isAI ? aiResult.coachingGuide : [];
 
-  const severityColor = { high: "#EF4444", medium: "#F59E0B", low: "#10B981" };
-  const severityBg = { high: "bg-red-50", medium: "bg-amber-50", low: "bg-emerald-50" };
-  const severityLabel = { high: T.severityHigh[lang], medium: T.severityMid[lang], low: T.severityLow[lang] };
-
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       {/* Header */}
@@ -140,17 +136,12 @@ export default function AnalysisReport() {
             <h2 className="text-base font-bold text-[#1A1A2E] mb-3">{T.priorities[lang]}</h2>
             <div className="space-y-3">
               {priorities.map((p, i) => (
-                <div key={i} className={`${severityBg[p.severity] || "bg-gray-50"} rounded-xl p-5 flex items-start gap-4`}>
-                  <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center flex-shrink-0">
-                    <AlertTriangle className="w-5 h-5" style={{ color: severityColor[p.severity] || "#6B7280" }} />
+                <div key={i} className="bg-white rounded-xl border border-gray-100 p-5 flex items-start gap-4">
+                  <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                    <Info className="w-5 h-5 text-gray-500" />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-sm font-bold text-[#1A1A2E]">{p.issue}</p>
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full text-white" style={{ background: severityColor[p.severity] || "#6B7280" }}>
-                        {severityLabel[p.severity] || p.severity}
-                      </span>
-                    </div>
+                    <p className="text-sm font-bold text-[#1A1A2E] mb-1">{p.issue}</p>
                     <p className="text-sm text-gray-500 leading-relaxed">{p.correction}</p>
                   </div>
                 </div>
@@ -174,6 +165,10 @@ export default function AnalysisReport() {
                   <p className="text-xs text-gray-500 leading-relaxed">{g.instruction}</p>
                 </div>
               ))}
+            </div>
+            <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-lg px-4 py-3">
+              <Info className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-amber-700 leading-relaxed">{T.coachingDisclaimer[lang]}</p>
             </div>
           </motion.div>
         )}

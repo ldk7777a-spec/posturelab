@@ -1,129 +1,131 @@
-import React, { useState } from "react";
+import React from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Ruler, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import ImageUploader from "@/components/analysis/ImageUploader";
 import { useLang, T } from "@/lib/LanguageContext";
 
-// 측정 항목별 상세 — 앱에 실제로 표시되는 파라미터만 사용 (의료/효능 표현 제거)
+// 기본 자세 분석(사진) + 종목별 동작 분석(동영상).
+// 의료 진단 표현(Cobb/측만증/부상 위험 등)은 일절 사용하지 않고
+// 앱에 실제로 표시되는 파라미터만 사실대로 기술합니다.
 const DATA = {
-  elbow: {
-    label: { ko: "팔꿈치", en: "Elbow" },
-    sublabel: { ko: "좌우 팔꿈치 각도 추적", en: "Left/right elbow angle tracking" },
+  spine: {
+    label: { ko: "척추", en: "Spine" },
+    sublabel: { ko: "체간 정렬 상태 확인", en: "Check trunk alignment" },
     color: "#FF6B4A",
     description: {
-      ko: "프레임마다 왼쪽·오른쪽 팔꿈치 각도를 추적해 굴곡·신장 범위와 좌우 차이를 확인합니다.",
-      en: "Left and right elbow angles are tracked frame-by-frame to inspect flexion/extension range and left-right differences.",
-    },
-    metrics: {
-      ko: ["왼쪽 팔꿈치", "오른쪽 팔꿈치"],
-      en: ["Left elbow", "Right elbow"],
-    },
-    method: {
-      ko: "MediaPipe Pose 랜드마크로 어깨·팔꿈치·손목 벡터를 정의해 매 프레임 각도를 산출합니다.",
-      en: "MediaPipe Pose landmarks define shoulder–elbow–wrist vectors to compute the angle each frame.",
-    },
-  },
-  shoulder: {
-    label: { ko: "견관절", en: "Shoulder" },
-    sublabel: { ko: "좌우 어깨 관절 각도 추적", en: "Left/right shoulder angle tracking" },
-    color: "#3B82F6",
-    description: {
-      ko: "왼쪽·오른쪽 견관절 각도를 추적해 가동 범위와 좌우 비대칭을 확인합니다.",
-      en: "Left and right shoulder joint angles are tracked to inspect range of motion and bilateral asymmetry.",
-    },
-    metrics: {
-      ko: ["왼쪽 견관절", "오른쪽 견관절"],
-      en: ["Left shoulder", "Right shoulder"],
-    },
-    method: {
-      ko: "상완(어깨–팔꿈치)과 몸통(어깨–골반) 벡터로 매 프레임 견관절 각도를 계산합니다.",
-      en: "Shoulder angle is computed each frame from the upper-arm (shoulder–elbow) and trunk (shoulder–hip) vectors.",
-    },
-  },
-  hip: {
-    label: { ko: "고관절", en: "Hip" },
-    sublabel: { ko: "좌우 고관절 각도 추적", en: "Left/right hip angle tracking" },
-    color: "#8B5CF6",
-    description: {
-      ko: "왼쪽·오른쪽 고관절 각도로 굴곡·신장과 좌우 차이를 추적합니다.",
-      en: "Left and right hip angles track flexion/extension and bilateral differences.",
-    },
-    metrics: {
-      ko: ["왼쪽 고관절", "오른쪽 고관절"],
-      en: ["Left hip", "Right hip"],
-    },
-    method: {
-      ko: "대퇴(골반–무릎)와 몸통(골반–어깨) 벡터로 매 프레임 고관절 각도를 산출합니다.",
-      en: "Hip angle is computed each frame from the thigh (hip–knee) and trunk (hip–shoulder) vectors.",
-    },
-  },
-  knee: {
-    label: { ko: "무릎", en: "Knee" },
-    sublabel: { ko: "좌우 무릎 각도 추적", en: "Left/right knee angle tracking" },
-    color: "#10B981",
-    description: {
-      ko: "왼쪽·오른쪽 무릎 각도로 굴곡 각도와 좌우 차이를 추적합니다.",
-      en: "Left and right knee angles track flexion angle and bilateral differences.",
-    },
-    metrics: {
-      ko: ["왼쪽 무릎", "오른쪽 무릎"],
-      en: ["Left knee", "Right knee"],
-    },
-    method: {
-      ko: "대퇴(고관절–무릎)과 하퇴(무릎–발목) 벡터로 매 프레임 무릎 각도를 산출합니다.",
-      en: "Knee angle is computed each frame from the thigh (hip–knee) and shin (knee–ankle) vectors.",
-    },
-  },
-  ankle: {
-    label: { ko: "발목", en: "Ankle" },
-    sublabel: { ko: "좌우 발목 각도 추적", en: "Left/right ankle angle tracking" },
-    color: "#F59E0B",
-    description: {
-      ko: "왼쪽·오른쪽 발목 각도로 발목 가동 범위와 좌우 차이를 추적합니다.",
-      en: "Left and right ankle angles track range of motion and bilateral differences.",
-    },
-    metrics: {
-      ko: ["왼쪽 발목", "오른쪽 발목"],
-      en: ["Left ankle", "Right ankle"],
-    },
-    method: {
-      ko: "하퇴(무릎–발목)와 발(발목–발가락) 벡터로 매 프레임 발목 각도를 산출합니다.",
-      en: "Ankle angle is computed each frame from the shin (knee–ankle) and foot (ankle–toe) vectors.",
-    },
-  },
-  alignment: {
-    label: { ko: "정렬 지표", en: "Alignment Metrics" },
-    sublabel: { ko: "어깨·골반·상체 기울기, 머리 위치", en: "Shoulder/pelvis/trunk tilt, head position" },
-    color: "#06B6D4",
-    description: {
-      ko: "프레임마다 어깨 기울기, 골반 기울기, 상체 기울기, 머리의 전방/측방 위치를 추적합니다. 좌우 비대칭이나 특정 구간에서의 변화를 그래프로 확인할 수 있습니다.",
-      en: "Each frame tracks shoulder tilt, pelvic tilt, trunk lean, and forward/lateral head position. Left-right asymmetry and changes over specific phases can be reviewed in the graph.",
+      ko: "정적 자세에서 척추가 기울어지거나 한쪽으로 치우쳐 있는지 확인합니다. 치료 진단이 아닌 참고용 정렬 지표입니다.",
+      en: "Checks whether the spine tilts or shifts to one side in static posture. A reference alignment indicator, not a diagnosis.",
     },
     metrics: {
       ko: ["어깨 기울기", "골반 기울기", "상체 기울기", "머리 전방/측방 위치"],
       en: ["Shoulder tilt", "Pelvic tilt", "Trunk lean", "Head forward/lateral position"],
     },
     method: {
-      ko: "MediaPipe Pose 랜드마크를 기반으로 프레임마다 좌표를 계산해 기울기와 위치를 산출합니다.",
-      en: "Using MediaPipe Pose landmarks, coordinates are computed each frame to derive tilt and head position.",
+      ko: "MediaPipe Pose 랜드마크로 매 프레임 어깨·골반·상체 벡터의 기울기를 계산합니다.",
+      en: "MediaPipe Pose landmarks compute shoulder, pelvic, and trunk tilt each frame.",
     },
   },
-  swing: {
-    label: { ko: "스윙 구간 분석", en: "Swing Phase Analysis" },
-    sublabel: { ko: "골프 8단계 구간 자동 추천 (어드레스~피니시)", en: "Golf 8-phase auto-suggested ranges (address → finish)" },
-    color: "#EC4899",
+  shoulders: {
+    label: { ko: "어깨", en: "Shoulders" },
+    sublabel: { ko: "좌우 대칭 확인", en: "Check left/right symmetry" },
+    color: "#3B82F6",
     description: {
-      ko: "골프 스윙에서 어드레스와 피니시를 지정하면 8단계 구간을 자동으로 추천합니다. 추천값을 기준으로 슬라이더로 직접 조정해 최종 확정할 수 있습니다.",
-      en: "In a golf swing, set address and finish and the 8 phases are auto-suggested. Adjust the slider from the suggested values to finalise.",
+      ko: "좌우 어깨 높이와 각도를 비교해 비대칭 정도를 확인합니다. 자세 참고용 지표입니다.",
+      en: "Compares left and right shoulder height/angle to gauge asymmetry. A posture reference indicator.",
     },
     metrics: {
-      ko: ["어드레스", "테이크어웨이", "백스윙", "탑", "트랜지션/다운스윙", "임팩트", "팔로스루", "피니시"],
-      en: ["Address", "Takeaway", "Backswing", "Top", "Transition/Downswing", "Impact", "Follow-through", "Finish"],
+      ko: ["어깨 기울기", "좌/우 견관절 각도", "어깨 비대칭 편차"],
+      en: ["Shoulder tilt", "Left/right shoulder angle", "Shoulder asymmetry range"],
     },
     method: {
-      ko: "사용자가 지정한 어드레스·피니시 범위 안에서 랜드마크 이동·회전 데이터로 구간별 시점을 추천합니다.",
-      en: "Within the user-set address–finish window, landmark movement and rotation data suggest the frame for each phase.",
+      ko: "양측 어깨·팔꿈치 랜드마크 벡터로 좌우 견관절 각도와 어깨 기울기를 매 프레임 계산합니다.",
+      en: "Bilateral shoulder and elbow landmark vectors compute left/right shoulder angles and shoulder tilt each frame.",
+    },
+  },
+  pelvis: {
+    label: { ko: "골반", en: "Pelvis" },
+    sublabel: { ko: "수평 여부 확인", en: "Check level" },
+    color: "#8B5CF6",
+    description: {
+      ko: "골반의 좌우 기울어짐을 확인합니다. 정적 자세의 참고용 정렬 지표입니다.",
+      en: "Checks pelvic lateral tilt. A reference alignment indicator for static posture.",
+    },
+    metrics: {
+      ko: ["골반 기울기", "좌/우 고관절 각도"],
+      en: ["Pelvic tilt", "Left/right hip angle"],
+    },
+    method: {
+      ko: "양측 골반·고관절 랜드마크 벡터로 골반 기울기와 고관절 각도를 매 프레임 계산합니다.",
+      en: "Bilateral pelvic and hip landmark vectors compute pelvic tilt and hip angles each frame.",
+    },
+  },
+  knees: {
+    label: { ko: "무릎", en: "Knees" },
+    sublabel: { ko: "정렬 경향 확인", en: "Check alignment tendency" },
+    color: "#10B981",
+    description: {
+      ko: "좌우 무릎 각도로 정렬 경향을 확인합니다. 참고용 지표이며 의료 진단이 아닙니다.",
+      en: "Left and right knee angles indicate alignment tendency. A reference indicator, not a diagnosis.",
+    },
+    metrics: {
+      ko: ["좌/우 무릎 각도", "무릎 비대칭 편차"],
+      en: ["Left/right knee angle", "Knee asymmetry range"],
+    },
+    method: {
+      ko: "대퇴·하퇴 랜드마크 벡터로 매 프레임 무릎 각도를 계산합니다.",
+      en: "Thigh and shin landmark vectors compute the knee angle each frame.",
+    },
+  },
+  feet: {
+    label: { ko: "발", en: "Feet" },
+    sublabel: { ko: "기본 정렬 확인 (정밀 분석은 전용 장비 필요)", en: "Basic alignment (precise analysis needs dedicated hardware)" },
+    color: "#F59E0B",
+    description: {
+      ko: "발의 기본 외전/정렬을 확인합니다. 회내·회외 등 정밀한 족부 역학 분석은 별도 전용 장비가 필요합니다.",
+      en: "Checks basic toe-out/foot alignment. Precise foot-mechanics analysis (pronation/supination) requires dedicated hardware.",
+    },
+    metrics: {
+      ko: ["왼쪽 발 외전", "오른쪽 발 외전"],
+      en: ["Left foot turnout", "Right foot turnout"],
+    },
+    method: {
+      ko: "발목·발가락 랜드마크 벡터로 발 외전 각도를 매 프레임 산출합니다. 정밀한 족부 역학은 전용 장비를 권장합니다.",
+      en: "Ankle and toe landmark vectors compute foot turnout each frame. Precise foot mechanics call for dedicated equipment.",
+    },
+  },
+  baseball: {
+    label: { ko: "야구", en: "Baseball" },
+    sublabel: { ko: "투구·스윙 구간별 관절 각도", en: "Joint angles by pitching/swing phase" },
+    color: "#FF6B4A",
+    description: {
+      ko: "야구 투구와 스윙에서 구간별(로드·첫움직임·발착지·컨택) 관절 각도와 견갑-골반 분리각을 추적합니다. Driveline OBP 공개 참고값과 비교할 수 있습니다.",
+      en: "Tracks joint angles and hip-shoulder separation across pitching/swing phases (load, first move, foot plant, contact). Comparisons use published Driveline OBP reference values.",
+    },
+    metrics: {
+      ko: ["견갑-골반 분리각", "좌/우 어깨·고관절·무릎 각도", "OBP 구간 프레임"],
+      en: ["Hip-shoulder separation", "Left/right shoulder, hip, knee angles", "OBP phase frames"],
+    },
+    method: {
+      ko: "MediaPipe Pose로 추출한 랜드마크에서 매 프레임 각도와 분리각을 계산합니다. OBP 참고값은 Driveline Baseball의 공개 데이터입니다.",
+      en: "MediaPipe Pose landmarks compute angles and separation per frame. OBP reference values are Driveline Baseball public data.",
+    },
+  },
+  golf: {
+    label: { ko: "골프", en: "Golf" },
+    sublabel: { ko: "8단계 스윙 구간 자동 분류 및 구간별 각도", en: "8-phase swing auto-segmentation & per-phase angles" },
+    color: "#EC4899",
+    description: {
+      ko: "골프 스윙에서 어드레스·피니시를 지정하면 8단계 구간(어드레스→테이크어웨이→백스윙→탑→다운스윙→임팩트→팔로스루→피니시)을 자동 추천하고, 구간별 관절 각도를 확인합니다.",
+      en: "Set address and finish in a golf swing and the 8 phases (address → takeaway → backswing → top → downswing → impact → follow-through → finish) are auto-suggested, with per-phase joint angles.",
+    },
+    metrics: {
+      ko: ["8단계 스윙 구간", "구간별 좌/우 관절 각도", "어드레스·피니시 지정"],
+      en: ["8 swing phases", "Per-phase left/right joint angles", "Address & finish markers"],
+    },
+    method: {
+      ko: "사용자가 지정한 어드레스·피니시 구간 안에서 랜드마크 이동·회전 데이터로 각 단계의 시점을 추천합니다.",
+      en: "Within the user-set address–finish window, landmark movement and rotation suggest the frame for each phase.",
     },
   },
 };
