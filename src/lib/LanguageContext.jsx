@@ -140,12 +140,22 @@ export const T = {
   },
   measureCardsSport: {
     ko: [
-      { key: "baseball", label: "야구", desc: "투구·스윙 구간별 관절 각도" },
-      { key: "golf",     label: "골프", desc: "8단계 스윙 구간 자동 분류 및 구간별 각도" },
+      { key: "baseball",  label: "야구",            desc: "투구·스윙 구간별 관절 각도" },
+      { key: "golf",      label: "골프",            desc: "8단계 스윙 구간 자동 분류 및 구간별 각도" },
+      { key: "weight",    label: "웨이트 트레이닝", desc: "스쿼트·데드리프트 구간별 관절 각도", comingSoon: true },
+      { key: "running",   label: "러닝",            desc: "달리기 자세 및 착지 패턴 분석", comingSoon: true },
+      { key: "tennis",    label: "테니스",          desc: "서브 동작 구간별 관절 각도", comingSoon: true },
+      { key: "badminton", label: "배드민턴",        desc: "스매시 동작 구간별 관절 각도", comingSoon: true },
+      { key: "soccer",    label: "축구",            desc: "킥 동작 구간별 관절 각도", comingSoon: true },
     ],
     en: [
-      { key: "baseball", label: "Baseball", desc: "Joint angles by pitching/swing phase" },
-      { key: "golf",     label: "Golf",     desc: "8-phase swing auto-segmentation & per-phase angles" },
+      { key: "baseball",  label: "Baseball",        desc: "Joint angles by pitching/swing phase" },
+      { key: "golf",      label: "Golf",            desc: "8-phase swing auto-segmentation & per-phase angles" },
+      { key: "weight",    label: "Weight Training", desc: "Joint angles by squat/deadlift phase", comingSoon: true },
+      { key: "running",   label: "Running",          desc: "Running form & landing pattern analysis", comingSoon: true },
+      { key: "tennis",    label: "Tennis",           desc: "Joint angles by serve phase", comingSoon: true },
+      { key: "badminton", label: "Badminton",        desc: "Joint angles by smash phase", comingSoon: true },
+      { key: "soccer",    label: "Soccer",           desc: "Joint angles by kick phase", comingSoon: true },
     ],
   },
 
@@ -281,6 +291,44 @@ export const T = {
   metricTrunkLean:    { ko: "트렁크 기울기 (최대)", en: "Trunk Lean (max)" },
   metricShoulderTilt: { ko: "어깨 기울기 (편차)", en: "Shoulder Tilt (range)" },
   metricPelvicTilt:   { ko: "골반 기울기 (편차)", en: "Pelvic Tilt (range)" },
+
+  // ── Coming soon (measurement cards) ────────────────────────────────────
+  comingSoonBadge: { ko: "준비 중", en: "Coming Soon" },
+  comingSoonMsg:   { ko: "곧 지원 예정입니다", en: "Coming soon" },
+
+  // ── Admin dashboard ──────────────────────────────────────────────────────
+  admin: {
+    ko: {
+      title: "관리자 대시보드", denied: "접근 권한이 없습니다", goHome: "홈으로 돌아가기",
+      statUsers: "총 회원수", statAnalyses: "총 분석 횟수", statSports: "종목 수",
+      chartTitle: "종목별 분석 현황",
+      tabUsers: "회원 관리", tabRecords: "분석 기록",
+      searchUser: "이름 또는 이메일 검색...", searchAll: "검색...",
+      colMember: "회원", colJoined: "가입일", colCount: "분석수", colRole: "권한",
+      roleAdmin: "관리자", roleUser: "일반",
+      noResults: "검색 결과가 없습니다",
+      compare: "영상 비교", compareCancel: "비교 취소",
+      compareSelect: "비교할 영상 2개 선택", compareStart: "비교하기",
+      videoTag: "동영상", noVideo: "영상 없음", unknownUser: "알 수 없음",
+    },
+    en: {
+      title: "Admin Dashboard", denied: "Access denied", goHome: "Back to Home",
+      statUsers: "Total Members", statAnalyses: "Total Analyses", statSports: "Sports Categories",
+      chartTitle: "Analyses by Sport",
+      tabUsers: "Members", tabRecords: "Records",
+      searchUser: "Search name or email...", searchAll: "Search...",
+      colMember: "Member", colJoined: "Joined", colCount: "Analyses", colRole: "Role",
+      roleAdmin: "Admin", roleUser: "User",
+      noResults: "No results found",
+      compare: "Compare Videos", compareCancel: "Cancel",
+      compareSelect: "Select 2 videos to compare", compareStart: "Compare",
+      videoTag: "Video", noVideo: "No video", unknownUser: "Unknown",
+    },
+  },
+  adminSports: {
+    ko: { general: "일반자세", soccer: "축구", baseball: "야구", running: "달리기", walking: "걷기", pilates: "필라테스", yoga: "요가", golf: "골프", swimming: "수영", cycling: "사이클", basketball: "농구", tennis: "테니스" },
+    en: { general: "General", soccer: "Soccer", baseball: "Baseball", running: "Running", walking: "Walking", pilates: "Pilates", yoga: "Yoga", golf: "Golf", swimming: "Swimming", cycling: "Cycling", basketball: "Basketball", tennis: "Tennis" },
+  },
 };
 
 // Pure traffic-light judgment module — independent of UI/i18n. Shared by all steps.
