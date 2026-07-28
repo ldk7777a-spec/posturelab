@@ -11,13 +11,13 @@ const IMG = {
   pelvis:    "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/b208d82c9_generated_image.png",
   knees:     "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/33780df84_generated_image.png",
   feet:      "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/be4a27a7e_generated_image.png",
-  baseball:  "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/03aecaedc_generated_image.png",
-  golf:      "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/df973d4dd_generated_image.png",
-  weight:    "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/4b2376659_generated_image.png",
-  running:   "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/1580d3787_generated_image.png",
-  tennis:    "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/c62431d8c_generated_image.png",
-  badminton: "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/78d23223b_generated_image.png",
-  soccer:    "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/225371040_generated_image.png",
+  baseball:  "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/26a363457_ChatGPTImage202672801_39_23.png",
+  golf:      "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/56f851f5f_ChatGPTImage202672801_40_28.png",
+  weight:    "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/1a4f4b6da_ChatGPTImage202672801_51_30.png",
+  running:   "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/1b5ea6500_ChatGPTImage202672802_02_20.png",
+  tennis:    "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/25090c2e0_ChatGPTImage202672801_49_06.png",
+  badminton: "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/a928509c2_ChatGPTImage202672801_43_12.png",
+  soccer:    "https://media.base44.com/images/public/6a3b77c47222088c76d9d104/625ca53a5_ChatGPTImage202672802_11_20.png",
 };
 
 const pad = (n) => String(n).padStart(2, "0");
