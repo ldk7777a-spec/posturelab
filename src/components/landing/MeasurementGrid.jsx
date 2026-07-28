@@ -55,7 +55,7 @@ function Card({ c, num, delay, lang, onSoon }) {
     </>
   );
 
-  const baseCls = `relative group rounded-2xl overflow-hidden border bg-white transition-all ${
+  const baseCls = `relative group rounded-2xl overflow-hidden border bg-white transition-all w-full sm:w-[calc(50%-6px)] lg:w-[calc(33.333%-10.667px)] ${
     soon
       ? "border-gray-200 cursor-pointer opacity-80 hover:opacity-100 hover:border-[#FF6B4A]/40"
       : "border-gray-100 hover:border-[#FF6B4A]/40 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]"
@@ -102,7 +102,7 @@ function Group({ icon, iconBg, title, sub, cards, startNum, lang, onSoon }) {
           <p className="text-xs text-gray-400">{sub}</p>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+      <div className="flex flex-wrap justify-center gap-3 lg:gap-4">
         {cards.map((c, i) => (
           <Card
             key={c.key}
@@ -165,7 +165,7 @@ export default function MeasurementGrid() {
             title={T.measureGroupSport[lang]}
             sub={T.measureGroupSportSub[lang]}
             cards={sport}
-            startNum={basic.length + 1}
+            startNum={1}
             lang={lang}
             onSoon={onSoon}
           />
