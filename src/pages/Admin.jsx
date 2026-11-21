@@ -29,11 +29,14 @@ export default function Admin() {
     const load = async () => {
       try {
         const me = await base44.auth.me();
-        if (me.role !== "admin") { setUnauthorized(true); setLoading(false); return; }
         const [u, r] = await Promise.all([
           base44.entities.User.list(),
           base44.entities.AnalysisRecord.list("-created_date", 200),
         ]);
+        const self = u.find((x) => x.id === me.id) ||
+          u.find((x) => (x.email || "").toLowerCase() === (me.email || "").toLowerCase());
+        const isAdmin = me.role === "admin" || self?.role === "admin";
+        if (!isAdmin) { setUnauthorized(true); setLoading(false); return; }
         setUsers(u);
         setRecords(r);
       } catch {
