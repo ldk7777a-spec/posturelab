@@ -15,6 +15,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
+  const [selfInfo, setSelfInfo] = useState(null);
   const [users, setUsers] = useState([]);
   const [records, setRecords] = useState([]);
   const [search, setSearch] = useState("");
@@ -28,17 +29,21 @@ export default function Admin() {
   useEffect(() => {
     const load = async () => {
       try {
-        const me = await base44.auth.me();
-        const [u, r] = await Promise.all([
-          base44.entities.User.list(),
-          base44.entities.AnalysisRecord.list("-created_date", 200),
-        ]);
-        const self = u.find((x) => x.id === me.id) ||
-          u.find((x) => (x.email || "").toLowerCase() === (me.email || "").toLowerCase());
-        const isAdmin = me.role === "admin" || self?.role === "admin";
-        if (!isAdmin) { setUnauthorized(true); setLoading(false); return; }
-        setUsers(u);
-        setRecords(r);
+        const res = await base44.functions.invoke("adminDashboard", {});
+        const data = res?.data || {};
+        if (!data.isAdmin) {
+          setSelfInfo(data.email || null);
+          setUnauthorized(true);
+          setLoading(false);
+          return;
+        }
+        setUsers(data.users || []);
+        try {
+          const recs = await base44.entities.AnalysisRecord.list("-created_date", 200);
+          setRecords(recs || []);
+        } catch {
+          setRecords([]);
+        }
       } catch {
         setUnauthorized(true);
       } finally {
@@ -57,6 +62,7 @@ export default function Admin() {
   if (unauthorized) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-gray-500">
       <p className="text-lg font-bold">{t.denied}</p>
+      {selfInfo && <p className="text-xs text-gray-400">{selfInfo}</p>}
       <Link to="/" className="text-[#FF6B4A] text-sm hover:underline">{t.goHome}</Link>
     </div>
   );
