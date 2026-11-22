@@ -4,7 +4,7 @@ import { ArrowLeft, Settings2, ChevronLeft, ChevronRight, Loader2, Plus, Minus }
 import { drawSkeleton } from "@/lib/poseDraw";
 import { frameAngles } from "@/lib/biomechanics";
 import {
-  ANGLE_METRICS, ALIGN_METRICS, ASYMM_PAIRS,
+  ALIGN_METRICS, ASYMM_PAIRS,
   DEFAULT_RANGES, getRating, asymRating,
 } from "@/lib/metricRanges";
 import AngleGraph from "@/components/analysis/AngleGraph";
@@ -192,10 +192,6 @@ export default function FrameAnalysis() {
     }
   }
 
-  const angleSummary = ANGLE_METRICS.map((j) => {
-    const vals = frames.map((f) => frameAngles(f.landmarks)[j.key]).filter((v) => v != null);
-    return { ...j, ...summarize(vals) };
-  });
   const alignSummary = ALIGN_METRICS.map((j) => {
     const vals = frames.map((f) => frameAngles(f.landmarks)[j.key]).filter((v) => v != null);
     return { ...j, ...summarize(vals) };
@@ -212,16 +208,6 @@ export default function FrameAnalysis() {
   });
 
   const showSummary = obpMode === "none" && sport !== "golf";
-
-  const angleRows = angleSummary.map((s) => ({
-    key: s.key,
-    label: s.label,
-    hint: s.hint,
-    current: ang[s.key],
-    currentRating: getRating(ang[s.key], ranges[s.key]),
-    s,
-    rating: getRating(s.avg, ranges[s.key]),
-  }));
 
   const alignRows = alignSummary.map((s) => ({
     key: s.key,
@@ -317,12 +303,15 @@ export default function FrameAnalysis() {
 
       {/* Desktop: video left (sticky), all analytics right — one screen, no scroll */}
       <div className="max-w-md lg:max-w-[1400px] mx-auto px-4 py-3">
-        <div className="lg:grid lg:grid-cols-[minmax(260px,360px)_minmax(0,1fr)] lg:gap-4 lg:items-start">
+        <div
+          className="lg:grid lg:gap-4 lg:items-start"
+          style={{ gridTemplateColumns: `minmax(0, ${(40 * zoom).toFixed(1)}%) minmax(0, 1fr)` }}
+        >
           {/* Frame + slider */}
           <div className="lg:sticky lg:top-[64px]">
             <div className="bg-white rounded-2xl border border-gray-100 p-3">
               <div className="flex justify-center">
-                <div className="relative">
+                <div className="relative w-full">
                   <canvas
                     ref={canvasRef}
                     className="block rounded-xl bg-black"
@@ -330,7 +319,7 @@ export default function FrameAnalysis() {
                       aspectRatio: frames[safeIdx]
                         ? `${frames[safeIdx].width || 9} / ${frames[safeIdx].height || 16}`
                         : "9 / 16",
-                      maxHeight: `calc((100vh - 300px) * ${zoom})`,
+                      maxHeight: "calc(100vh - 260px)",
                       maxWidth: "100%",
                       width: "auto",
                       height: "auto",
@@ -420,20 +409,17 @@ export default function FrameAnalysis() {
           {/* Metrics — compact tables so current + summary fit together */}
           <div className="mt-4 lg:mt-0 space-y-3">
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-              <MetricsTable title="관절 가동각" rows={angleRows} showSummary={showSummary} />
-              <div className="space-y-3">
-                <MetricsTable title="정렬 지표" rows={alignRows} showSummary={showSummary} />
-                {showSummary && (
-                  asymSummary.every((s) => s.avg == null) ? (
-                    <div className="bg-white rounded-2xl border border-gray-100 p-3">
-                      <p className="text-sm font-bold text-[#1A1A2E] mb-1">좌우 비대칭 · |좌 − 우|</p>
-                      <p className="text-xs text-gray-400">양측 관절을 모두 인식한 프레임이 필요합니다.</p>
-                    </div>
-                  ) : (
-                    <MetricsTable title="좌우 비대칭 · |좌 − 우|" rows={asymRows} showSummary />
-                  )
-                )}
-              </div>
+              <MetricsTable title="정렬 지표" rows={alignRows} showSummary={showSummary} />
+              {showSummary && (
+                asymSummary.every((s) => s.avg == null) ? (
+                  <div className="bg-white rounded-2xl border border-gray-100 p-3">
+                    <p className="text-sm font-bold text-[#1A1A2E] mb-1">좌우 비대칭 · |좌 − 우|</p>
+                    <p className="text-xs text-gray-400">양측 관절을 모두 인식한 프레임이 필요합니다.</p>
+                  </div>
+                ) : (
+                  <MetricsTable title="좌우 비대칭 · |좌 − 우|" rows={asymRows} showSummary />
+                )
+              )}
             </div>
 
             {/* 각도 변화 그래프 */}
