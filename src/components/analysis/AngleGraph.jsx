@@ -77,7 +77,7 @@ export default function AngleGraph({ frames, selectedIdx, onSelectFrame }) {
       {visible.size === 0 ? (
         <p className="text-xs text-gray-400 text-center py-8">선택된 관절이 없습니다. 위 토글에서 선택해 주세요.</p>
       ) : (
-        <ResponsiveContainer width="100%" height={240}>
+        <ResponsiveContainer width="100%" height={190}>
           <LineChart data={data} margin={{ top: 5, right: 10, left: -18, bottom: 0 }} onClick={handleClick}>
             <CartesianGrid stroke="#f1f5f9" />
             <XAxis dataKey="frame" tick={{ fontSize: 10, fill: "#9ca3af" }} tickLine={false} />
