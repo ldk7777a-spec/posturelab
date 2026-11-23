@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Edit2, Save, X, LogOut, BarChart2 } from "lucide-react";
+import { ArrowLeft, Edit2, Save, X, LogOut, BarChart2, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLang } from "@/lib/LanguageContext";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 const SPORT_LABELS = {
   general: "일반 자세", soccer: "축구", baseball: "야구", running: "달리기",
@@ -20,6 +24,22 @@ export default function MyPage() {
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await base44.entities.AnalysisRecord.delete(deleteTarget.id);
+      setRecords((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (e) {
+      alert("삭제 실패: " + e.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -215,11 +235,39 @@ export default function MyPage() {
                     {r.view && ` · ${r.view === "front" ? "정면" : "측면"}`}
                   </p>
                 </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                  aria-label="분석 기록 삭제"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             ))
           )}
         </motion.div>
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>분석 자료를 삭제할까요?</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 기록의 프레임·영상 데이터가 함께 삭제되며, 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={deleting}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {deleting ? "삭제 중..." : "삭제"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
