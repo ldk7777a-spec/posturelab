@@ -310,6 +310,10 @@ export const T = {
       compare: "영상 비교", compareCancel: "비교 취소",
       compareSelect: "비교할 영상 2개 선택", compareStart: "비교하기",
       videoTag: "동영상", noVideo: "영상 없음", unknownUser: "알 수 없음",
+      deleteRecord: "분석 기록 삭제",
+      deleteTitle: "분석 자료를 삭제할까요?",
+      deleteDesc: "이 기록의 프레임·영상 데이터가 함께 삭제되며, 되돌릴 수 없습니다.",
+      deleteCancel: "취소", deleteConfirm: "삭제", deleting: "삭제 중...",
     },
     en: {
       title: "Admin Dashboard", denied: "Access denied", goHome: "Back to Home",
@@ -323,6 +327,10 @@ export const T = {
       compare: "Compare Videos", compareCancel: "Cancel",
       compareSelect: "Select 2 videos to compare", compareStart: "Compare",
       videoTag: "Video", noVideo: "No video", unknownUser: "Unknown",
+      deleteRecord: "Delete analysis record",
+      deleteTitle: "Delete this analysis?",
+      deleteDesc: "Its frames and video data will be removed as well. This can't be undone.",
+      deleteCancel: "Cancel", deleteConfirm: "Delete", deleting: "Deleting...",
     },
   },
   adminSports: {

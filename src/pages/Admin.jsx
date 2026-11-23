@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Users, BarChart2, Activity, Search, GitCompare, Check } from "lucide-react";
+import { ArrowLeft, Users, BarChart2, Activity, Search, GitCompare, Check, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useLang, T } from "@/lib/LanguageContext";
@@ -22,6 +26,23 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState("users");
   const [compareMode, setCompareMode] = useState(false);
   const [selected, setSelected] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteRecord = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await base44.entities.AnalysisRecord.delete(deleteTarget.id);
+      setRecords((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+      setSelected((prev) => prev.filter((id) => id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (e) {
+      alert("삭제 실패: " + e.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const catLabel = (cat) =>
     cat == null || cat === "general" ? sports.general : sports[cat] || cat;
@@ -296,12 +317,41 @@ export default function Admin() {
                       {u ? u.full_name : t.unknownUser} · {new Date(r.created_date).toLocaleString(LOCALE(lang), { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                    aria-label={t.deleteRecord}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               );
             })}
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.deleteTitle}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget && catLabel(deleteTarget.category)} · {deleteTarget && new Date(deleteTarget.created_date).toLocaleString(LOCALE(lang), { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              <br />{t.deleteDesc}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>{t.deleteCancel}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteRecord(); }}
+              disabled={deleting}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {deleting ? t.deleting : t.deleteConfirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
